@@ -1,0 +1,73 @@
+<section class="page">
+  <app-page-header title="Reservas" subtitle="Listado de reservas del complejo">
+    <a mat-flat-button color="primary" routerLink="/reservas/nueva">
+      <mat-icon>add</mat-icon>
+      <span>Nueva reserva</span>
+    </a>
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="reserva-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (reservas().length === 0) {
+    <p class="reserva-vacio">No hay reservas registradas.</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="reservas()" class="reserva-table">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>#</th>
+        <td mat-cell *matCellDef="let r">{{ r.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cancha">
+        <th mat-header-cell *matHeaderCellDef>Cancha</th>
+        <td mat-cell *matCellDef="let r">{{ r.canchaNombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let r">{{ r.usuarioNombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="inicio">
+        <th mat-header-cell *matHeaderCellDef>Inicio / Fin</th>
+        <td mat-cell *matCellDef="let r">
+          {{ r.fechaHoraInicio | date: 'dd/MM/yy HH:mm' }} — {{ r.fechaHoraFin | date: 'HH:mm' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let r">
+          <span class="estado-chip" [class]="'estado-' + r.estadoReserva.toLowerCase()">
+            {{ r.estadoReserva }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="monto">
+        <th mat-header-cell *matHeaderCellDef>Monto</th>
+        <td mat-cell *matCellDef="let r">{{ r.montoTotal | number: '1.0-0' }}</td>
+      </ng-container>
+
+      @if (puedeGestionar()) {
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let r">
+            <a mat-icon-button [routerLink]="['/reservas', r.id, 'editar']" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </a>
+            <button mat-icon-button (click)="eliminar(r)" aria-label="Eliminar">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+      }
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+    </table>
+  </div>
+</section>

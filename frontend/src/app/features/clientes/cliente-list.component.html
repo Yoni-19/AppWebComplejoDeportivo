@@ -1,0 +1,80 @@
+<section class="page">
+  <app-page-header title="Clientes" subtitle="Usuarios registrados en el sistema">
+    <mat-chip-set>
+      @if (!puedeGestionar()) {
+        <mat-chip>Solo lectura</mat-chip>
+      }
+    </mat-chip-set>
+    @if (puedeGestionar()) {
+      <a mat-flat-button color="primary" routerLink="/clientes/nueva">
+        <mat-icon>add</mat-icon>
+        <span>Nuevo cliente</span>
+      </a>
+    }
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="cliente-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (clientes().length === 0) {
+    <p class="cliente-vacio">No hay clientes registrados.</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="clientes()" class="cliente-table">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>#</th>
+        <td mat-cell *matCellDef="let c">{{ c.id }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef>Nombre completo</th>
+        <td mat-cell *matCellDef="let c">{{ c.nombres }} {{ c.apellidos }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="correo">
+        <th mat-header-cell *matHeaderCellDef>Correo</th>
+        <td mat-cell *matCellDef="let c">{{ c.correo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="rol">
+        <th mat-header-cell *matHeaderCellDef>Rol</th>
+        <td mat-cell *matCellDef="let c">
+          @if (puedeGestionar()) {
+            <mat-select
+              class="rol-select"
+              [value]="c.rol ?? 'CLIENTE'"
+              [disabled]="cambiando() === c.id"
+              (selectionChange)="cambiarRol(c, $event.value)"
+              [attr.aria-label]="'Rol de ' + c.nombres + ' ' + c.apellidos"
+            >
+              @for (rol of roles; track rol) {
+                <mat-option [value]="rol">{{ etiquetasRol[rol] }}</mat-option>
+              }
+            </mat-select>
+          } @else {
+            <mat-chip>{{ rolLabel(c) }}</mat-chip>
+          }
+        </td>
+      </ng-container>
+
+      @if (puedeGestionar()) {
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let c">
+            <a mat-icon-button [routerLink]="['/clientes', c.id, 'editar']" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </a>
+            <button mat-icon-button (click)="eliminar(c)" aria-label="Eliminar">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+      }
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+    </table>
+  </div>
+</section>

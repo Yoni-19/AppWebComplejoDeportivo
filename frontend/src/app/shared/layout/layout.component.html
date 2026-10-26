@@ -1,0 +1,57 @@
+<mat-sidenav-container class="layout">
+  <mat-sidenav
+    class="layout-sidenav"
+    [mode]="isMobile().matches ? 'over' : 'side'"
+    [opened]="isMobile().matches ? drawer() : true"
+    (closedStart)="drawer.set(false)"
+  >
+    <div class="sidenav-brand">
+      <mat-icon>sports</mat-icon>
+      <span>Complejo Deportivo</span>
+    </div>
+    <mat-nav-list>
+      <a mat-list-item routerLink="/dashboard" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <span matListItemTitle>Panel principal</span>
+      </a>
+      <a mat-list-item routerLink="/reservas" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+        <mat-icon matListItemIcon>event</mat-icon>
+        <span matListItemTitle>{{ auth.esCliente() ? 'Mis reservas' : 'Reservas' }}</span>
+      </a>
+      @if (auth.esAdmin()) {
+        <a mat-list-item routerLink="/canchas" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>sports_soccer</mat-icon>
+          <span matListItemTitle>Canchas</span>
+        </a>
+      }
+      @if (auth.esStaff()) {
+        <a mat-list-item routerLink="/clientes" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>people</mat-icon>
+          <span matListItemTitle>Clientes</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="layout-toolbar">
+      @if (isMobile().matches) {
+        <button mat-icon-button (click)="drawer.set(true)" aria-label="Abrir menú">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+      <span class="toolbar-spacer"></span>
+      @if (rolLabel()) {
+        <mat-chip class="toolbar-rol">{{ rolLabel() }}</mat-chip>
+      }
+      <span class="toolbar-user">{{ auth.correo }}</span>
+      <button mat-icon-button (click)="auth.logout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <main class="layout-content">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

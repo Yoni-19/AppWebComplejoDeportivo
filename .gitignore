@@ -1,0 +1,18 @@
+# Reglas del root del monorepo.
+# Van ancladas con "/" a proposito: cada subproyecto (backend/, frontend/) tiene
+# su propio .gitignore, que es el que aplica dentro de su carpeta.
+
+# VS Code (solo el de la raiz)
+# /.vscode/*
+!/.vscode/settings.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
+
+# Herramientas
+/.atl/
+
+# Sistema
+Thumbs.db
+.DS_Store
+desktop.ini

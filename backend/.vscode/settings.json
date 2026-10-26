@@ -1,0 +1,4 @@
+{
+  "java.autobuild.enabled": true,
+  "java.jdt.ls.javac.enabled": "off"
+}

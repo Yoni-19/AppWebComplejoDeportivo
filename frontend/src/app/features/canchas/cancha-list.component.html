@@ -1,0 +1,44 @@
+<section class="page">
+  <app-page-header title="Canchas" subtitle="Espacios deportivos del complejo">
+    <a mat-flat-button color="primary" routerLink="/canchas/nueva">
+      <mat-icon>add</mat-icon>
+      <span>Nueva cancha</span>
+    </a>
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="cancha-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (canchas().length === 0) {
+    <p class="cancha-vacio">No hay canchas registradas.</p>
+  }
+
+  <div class="cancha-grid">
+    @for (cancha of canchas(); track cancha.id) {
+      <mat-card class="cancha-card" [class.inactiva]="!cancha.activa">
+        <mat-card-content>
+          <div class="cancha-header">
+            <mat-icon>sports_soccer</mat-icon>
+            <span class="cancha-estado" [class]="'estado-' + (cancha.activa ? 'activa' : 'inactiva')">
+              {{ cancha.activa ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+          <h2>{{ cancha.nombre }}</h2>
+          <p class="cancha-deporte">{{ cancha.deporte }}</p>
+          <p class="cancha-precio">{{ cancha.precioPorHora | number: '1.0-0' }} <small>/ hora</small></p>
+          <div class="cancha-actions">
+            <a mat-button [routerLink]="['/canchas', cancha.id, 'editar']">
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
+            </a>
+            <button mat-button (click)="alternarEstado(cancha)">
+              <mat-icon>{{ cancha.activa ? 'block' : 'check_circle' }}</mat-icon>
+              <span>{{ cancha.activa ? 'Desactivar' : 'Activar' }}</span>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+</section>

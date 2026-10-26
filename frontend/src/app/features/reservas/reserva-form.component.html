@@ -1,0 +1,104 @@
+<section class="page">
+  <app-page-header
+    [title]="isEdit() ? 'Reprogramar reserva' : 'Nueva reserva'"
+    subtitle="Completa los datos de la reserva"
+  >
+    </app-page-header>
+
+  <mat-card class="form-card">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
+        @if (auth.esStaff()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Cliente</mat-label>
+            <mat-select formControlName="usuarioId">
+              @for (cliente of clientes(); track cliente.id) {
+                <mat-option [value]="cliente.id">{{ cliente.nombres }} {{ cliente.apellidos }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.usuarioId.hasError('required')) {
+              <mat-error>Selecciona un cliente</mat-error>
+            }
+            @if (isEdit()) {
+              <mat-hint>El cliente no se puede cambiar en una reserva existente</mat-hint>
+            }
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline">
+            <mat-label>Cliente</mat-label>
+            <input matInput [value]="auth.sesion()?.nombres ?? auth.correo ?? ''" readonly />
+            <mat-hint>La reserva se registra a tu nombre</mat-hint>
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline">
+          <mat-label>Cancha</mat-label>
+          <mat-select formControlName="canchaId">
+            @for (cancha of canchas(); track cancha.id) {
+              <mat-option [value]="cancha.id">{{ cancha.nombre }} — {{ cancha.deporte }}</mat-option>
+            }
+          </mat-select>
+          @if (form.controls.canchaId.hasError('required')) {
+            <mat-error>Selecciona una cancha</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Fecha</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="fecha" />
+          <mat-datepicker-toggle matIconSuffix [for]="picker" />
+          <mat-datepicker #picker />
+          @if (form.controls.fecha.hasError('required')) {
+            <mat-error>La fecha es obligatoria</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="time-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Hora inicio</mat-label>
+            <input matInput type="time" formControlName="horaInicio" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Hora fin</mat-label>
+            <input matInput type="time" formControlName="horaFin" />
+            @if (form.controls.horaFin.hasError('required')) {
+              <mat-error>Obligatoria</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <input matInput [value]="estadoActual() ?? 'PENDIENTE'" readonly />
+          @if (isEdit()) {
+            <mat-hint>El estado lo define el backend y no se puede editar desde aquí</mat-hint>
+          } @else {
+            <mat-hint>Las reservas nuevas se crean en estado PENDIENTE</mat-hint>
+          }
+        </mat-form-field>
+
+        @if (errorMessage()) {
+          <div class="full-width form-error" role="alert">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <div class="form-actions">
+          <a mat-button routerLink="/reservas">Cancelar</a>
+          <button mat-flat-button color="primary" type="submit" [disabled]="loading()">
+            @if (loading()) {
+              <mat-spinner diameter="20" strokeWidth="3" />
+            } @else {
+              <ng-container>
+                <mat-icon>save</mat-icon>
+                <span>{{ isEdit() ? 'Guardar cambios' : 'Registrar reserva' }}</span>
+              </ng-container>
+            }
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</section>

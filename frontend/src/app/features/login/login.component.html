@@ -1,0 +1,49 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <div class="login-brand">
+      <mat-icon>sports</mat-icon>
+      <h1>Complejo Deportivo</h1>
+      <p>Sistema de reservas de espacios deportivos</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="login-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput type="email" formControlName="correo" autocomplete="username" placeholder="admin@email.com" />
+        @if (form.controls.correo.hasError('required')) {
+          <mat-error>El correo es obligatorio</mat-error>
+        } @else if (form.controls.correo.hasError('email')) {
+          <mat-error>Ingresa un correo válido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input matInput type="password" formControlName="clave" autocomplete="current-password" />
+        @if (form.controls.clave.hasError('required')) {
+          <mat-error>La contraseña es obligatoria</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <div class="login-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <button mat-flat-button color="primary" class="login-button" type="submit" [disabled]="loading()">
+        @if (loading()) {
+          <mat-spinner diameter="20" strokeWidth="3" />
+        } @else {
+          <ng-container>
+            <mat-icon>login</mat-icon>
+            <span>Iniciar sesión</span>
+          </ng-container>
+        }
+      </button>
+
+      <a mat-button routerLink="/registro" class="login-link">¿No tienes cuenta? Crear cuenta</a>
+    </form>
+  </mat-card>
+</div>

@@ -1,0 +1,83 @@
+<div class="registro-page">
+  <mat-card class="registro-card">
+    <div class="registro-brand">
+      <mat-icon>sports</mat-icon>
+      <h1>Crear cuenta</h1>
+      <p>Reserva tus canchas en línea</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="registro-form">
+      <div class="row">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombres</mat-label>
+          <input matInput formControlName="nombres" autocomplete="given-name" />
+          @if (form.controls.nombres.hasError('required')) {
+            <mat-error>Los nombres son obligatorios</mat-error>
+          } @else if (form.controls.nombres.hasError('minlength')) {
+            <mat-error>Mínimo 2 caracteres</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Apellidos</mat-label>
+          <input matInput formControlName="apellidos" autocomplete="family-name" />
+          @if (form.controls.apellidos.hasError('required')) {
+            <mat-error>Los apellidos son obligatorios</mat-error>
+          } @else if (form.controls.apellidos.hasError('minlength')) {
+            <mat-error>Mínimo 2 caracteres</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput type="email" formControlName="correo" autocomplete="username" />
+        @if (form.controls.correo.hasError('required')) {
+          <mat-error>El correo es obligatorio</mat-error>
+        } @else if (form.controls.correo.hasError('email')) {
+          <mat-error>Ingresa un correo válido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input matInput type="password" formControlName="clave" autocomplete="new-password" />
+        @if (form.controls.clave.hasError('required')) {
+          <mat-error>La contraseña es obligatoria</mat-error>
+        } @else if (form.controls.clave.hasError('minlength')) {
+          <mat-error>Mínimo 2 caracteres</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Repetir contraseña</mat-label>
+        <input matInput type="password" formControlName="repetirClave" autocomplete="new-password" />
+        @if (form.controls.repetirClave.hasError('required')) {
+          <mat-error>Repite la contraseña</mat-error>
+        } @else if (form.hasError('clavesDistintas')) {
+          <mat-error>Las contraseñas no coinciden</mat-error>
+        }
+      </mat-form-field>
+
+      @if (errorMessage()) {
+        <div class="registro-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <button mat-flat-button color="primary" class="registro-button" type="submit" [disabled]="loading()">
+        @if (loading()) {
+          <mat-spinner diameter="20" strokeWidth="3" />
+        } @else {
+          <ng-container>
+            <mat-icon>person_add</mat-icon>
+            <span>Crear cuenta</span>
+          </ng-container>
+        }
+      </button>
+
+      <a mat-button routerLink="/login" class="registro-link">¿Ya tienes cuenta? Inicia sesión</a>
+    </form>
+  </mat-card>
+</div>

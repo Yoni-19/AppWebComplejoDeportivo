@@ -1,0 +1,84 @@
+<section class="page">
+  <app-page-header
+    title="Panel principal"
+    [subtitle]="'Bienvenido, ' + (nombre() || 'invitado')"
+  />
+
+  <div class="stat-grid">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <mat-icon class="stat-icon">pending_actions</mat-icon>
+        <div class="stat-value">{{ reservasPendientes() }}</div>
+        <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas pendientes' : 'Reservas pendientes' }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <mat-icon class="stat-icon">event_available</mat-icon>
+        <div class="stat-value">{{ reservasConfirmadas() }}</div>
+        <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas confirmadas' : 'Reservas confirmadas' }}</div>
+      </mat-card-content>
+    </mat-card>
+
+    @if (auth.esCliente()) {
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon">event</mat-icon>
+          <div class="stat-value">{{ totalReservas() }}</div>
+          <div class="stat-label">Mis reservas</div>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon">sports_soccer</mat-icon>
+          <div class="stat-value">{{ canchasActivas() }}</div>
+          <div class="stat-label">Canchas activas</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon">people</mat-icon>
+          <div class="stat-value">{{ totalClientes() }}</div>
+          <div class="stat-label">Clientes registrados</div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+
+  <h2 class="modules-title">Módulos</h2>
+  <div class="module-grid">
+    @if (auth.esCliente()) {
+      <a mat-flat-button color="primary" routerLink="/reservas">
+        <mat-icon>event</mat-icon>
+        <span>Mis reservas</span>
+      </a>
+      <a mat-flat-button color="primary" routerLink="/reservas/nueva">
+        <mat-icon>add</mat-icon>
+        <span>Nueva reserva</span>
+      </a>
+    } @else {
+      <a mat-flat-button color="primary" routerLink="/reservas">
+        <mat-icon>event</mat-icon>
+        <span>Gestionar reservas</span>
+      </a>
+      @if (auth.esAdmin()) {
+        <a mat-flat-button color="primary" routerLink="/canchas">
+          <mat-icon>sports_soccer</mat-icon>
+          <span>Gestionar canchas</span>
+        </a>
+        <a mat-flat-button color="primary" routerLink="/clientes">
+          <mat-icon>people</mat-icon>
+          <span>Gestionar clientes</span>
+        </a>
+      } @else {
+        <a mat-flat-button color="primary" routerLink="/clientes">
+          <mat-icon>people</mat-icon>
+          <span>Ver clientes</span>
+        </a>
+      }
+    }
+  </div>
+</section>
