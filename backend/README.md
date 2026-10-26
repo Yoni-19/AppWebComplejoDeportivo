@@ -31,7 +31,7 @@ cd backend
 
 ### En VS Code
 
-1. Abrí el workspace **raíz** (`ComplejoDeportivo-Arquitectura`), no solo `backend/`.
+1. Abrí el workspace **raíz** (`AppWebComplejoDeportivo`), no solo `backend/`.
 2. Esperá a que la extensión de Java termine de compilar (barra de estado "Java: Ready").
 3. Abrí `SreservasApplication.java` y usá el botón **Run**.
 4. Alternativa a prueba de balas: `Terminal > Run Task > backend: run`, o el comando Maven

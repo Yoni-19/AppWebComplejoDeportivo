@@ -1,6 +1,6 @@
 # AGENTS.md — sreservas (backend)
 
-> Este backend vive en `backend/` dentro del monorepo `ComplejoDeportivo-Arquitectura`.
+> Este backend vive en `backend/` dentro del monorepo `AppWebComplejoDeportivo`.
 > **Todos los comandos de esta página se ejecutan desde `backend/`.** El repo git está un nivel
 > arriba: `git status` desde acá muestra el monorepo entero. Convenciones generales del
 > monorepo en `../AGENTS.md`.
