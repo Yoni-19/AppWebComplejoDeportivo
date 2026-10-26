@@ -1,7 +1,7 @@
 # Frontend — Sistema Complejo Deportivo
 
 SPA del sistema de reservas. Angular standalone con signals y Angular Material.
-Consume la API real del backend (`http://localhost:8080`): no hay datos en memoria.
+Consume la API real del backend (`http://localhost:8081`): no hay datos en memoria.
 
 ## Requisitos
 
@@ -13,7 +13,7 @@ Consume la API real del backend (`http://localhost:8080`): no hay datos en memor
 ```powershell
 cd frontend
 npm install
-npm start        # dev server en http://localhost:4200
+npm start        # dev server en http://localhost:4201
 npm run build    # build de producción -> dist/
 npm test         # tests (Vitest)
 ```
@@ -23,7 +23,7 @@ npm test         # tests (Vitest)
 ```
 src/app/
 ├── core/          servicios, modelos, interceptores y guards compartidos
-│   ├── api.constants.ts     API_BASE (apunta a http://localhost:8080)
+│   ├── api.constants.ts     API_BASE (apunta a http://localhost:8081)
 │   ├── guards/              auth.guard (exige JWT en localStorage)
 │   ├── http/api-error.ts    traduce el envelope de error del backend a un mensaje
 │   ├── interceptors/        agrega Authorization: Bearer a cada request

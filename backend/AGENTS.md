@@ -1,6 +1,6 @@
 # AGENTS.md — sreservas (backend)
 
-> Este backend vive en `backend/` dentro del monorepo `SistemaComplejoDeportivo`.
+> Este backend vive en `backend/` dentro del monorepo `ComplejoDeportivo-Arquitectura`.
 > **Todos los comandos de esta página se ejecutan desde `backend/`.** El repo git está un nivel
 > arriba: `git status` desde acá muestra el monorepo entero. Convenciones generales del
 > monorepo en `../AGENTS.md`.
@@ -9,9 +9,9 @@
 
 - **El build oficial es Maven.** `mvn` NO está en el PATH de esta máquina: usá el wrapper.
 - `.\mvnw.cmd clean compile` — build completo (39 fuentes).
-- `.\mvnw.cmd spring-boot:run` — levanta en `http://localhost:8080`.
+- `.\mvnw.cmd spring-boot:run` — levanta en `http://localhost:8081`.
 - `.\mvnw.cmd test` — tests. Requieren MySQL arriba (el test es un `@SpringBootTest`).
-- MySQL: `localhost:3306`, user `root`, pass `mysql`, base `db_complejoDeportivo`.
+- MySQL: `localhost:3306`, user `root`, pass `mysql`, base `db_complejoArquitectura`.
   El esquema y el seed (`src/main/resources/data.sql`) se crean solos.
 
 ### Trampa activa en Windows: `clean` con la app corriendo
@@ -66,7 +66,7 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
 - **Nunca serializar entidades**: todo sale por DTOs (`dto/`). `Usuario.clave` es el hash
   BCrypt y jamás debe viajar en una respuesta.
 - Errores: `@RestControllerAdvice` centralizado + `server.error.include-message=always`.
-- CORS: solo `http://localhost:4200` y `http://127.0.0.1:4200` (frontend Angular).
+- CORS: solo `http://localhost:4201` y `http://127.0.0.1:4201` (frontend Angular).
 - Sin atributos de IA en comentarios ni commits. Commits en castellano, formato
   `tipo(ámbito): descripción` (`feat`, `fix`, `refactor`, `docs`, `chore`).
 - Java 25 disponible en `C:\Program Files\Eclipse Adoptium\jdk-25.0.1.8-hotspot`.

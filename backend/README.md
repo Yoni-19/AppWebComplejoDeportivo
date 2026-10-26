@@ -17,7 +17,7 @@ Sin Lombok: getters, setters y constructores se escriben explícitos.
 ## Requisitos
 
 - JDK 25
-- MySQL 8 corriendo en `localhost:3306` (la base `db_complejoDeportivo` se crea sola)
+- MySQL 8 corriendo en `localhost:3306` (la base `db_complejoArquitectura` se crea sola)
 - Maven no hace falta instalado: el proyecto incluye el wrapper (`mvnw.cmd`)
 
 ## Cómo correr
@@ -25,13 +25,13 @@ Sin Lombok: getters, setters y constructores se escriben explícitos.
 ```powershell
 cd backend
 .\mvnw.cmd clean compile      # build oficial
-.\mvnw.cmd spring-boot:run    # levanta en http://localhost:8080
+.\mvnw.cmd spring-boot:run    # levanta en http://localhost:8081
 .\mvnw.cmd test               # tests (requiere MySQL arriba)
 ```
 
 ### En VS Code
 
-1. Abrí el workspace **raíz** (`SistemaComplejoDeportivo`), no solo `backend/`.
+1. Abrí el workspace **raíz** (`ComplejoDeportivo-Arquitectura`), no solo `backend/`.
 2. Esperá a que la extensión de Java termine de compilar (barra de estado "Java: Ready").
 3. Abrí `SreservasApplication.java` y usá el botón **Run**.
 4. Alternativa a prueba de balas: `Terminal > Run Task > backend: run`, o el comando Maven
@@ -52,7 +52,7 @@ Las tres cuentas del seed usan la clave `test123` y sus roles salen de `data.sql
 | `pedro@email.com` | `CLIENTE` — Pedro Diaz |
 
 ```powershell
-curl -X POST http://localhost:8080/api/auth/login `
+curl -X POST http://localhost:8081/api/auth/login `
   -H "Content-Type: application/json" `
   -d '{"correo":"admin@email.com","clave":"test123"}'
 ```
@@ -106,7 +106,7 @@ Reglas de negocio implementadas:
 - **Contratos**: las respuestas usan DTOs (`dto/`), nunca las entidades. El hash BCrypt de
   la clave nunca sale por la API.
 - **Último administrador**: no se puede quitar el rol al último `ADMIN` (`409`).
-- **CORS**: habilitado para `http://localhost:4200` y `http://127.0.0.1:4200` (frontend Angular).
+- **CORS**: habilitado para `http://localhost:4201` y `http://127.0.0.1:4201` (frontend Angular).
 
 ## Gotcha importante: el IDE escribe en `target/classes`
 

@@ -20,13 +20,13 @@ Todo se corre **desde la carpeta del subproyecto**:
 # backend
 cd backend
 .\mvnw.cmd clean compile      # build oficial
-.\mvnw.cmd spring-boot:run    # API en http://localhost:8080
+.\mvnw.cmd spring-boot:run    # API en http://localhost:8081
 .\mvnw.cmd test               # tests (requiere MySQL arriba)
 
 # frontend
 cd frontend
 npm install
-npm start                     # SPA en http://localhost:4200
+npm start                     # SPA en http://localhost:4201
 npm run build                 # build de producción
 ```
 

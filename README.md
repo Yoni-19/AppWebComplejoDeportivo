@@ -27,7 +27,7 @@ Cada subproyecto tiene su propio `.gitignore` y su documentación:
 ## Requisitos
 
 - JDK 25
-- MySQL 8 corriendo en `localhost:3306` — la base `db_complejoDeportivo` se crea sola
+- MySQL 8 corriendo en `localhost:3306` — la base `db_complejoArquitectura` se crea sola
 - Node.js 20+ con npm
 - Maven no hace falta: el backend trae el wrapper (`backend/mvnw.cmd`)
 
@@ -36,11 +36,11 @@ Cada subproyecto tiene su propio `.gitignore` y su documentación:
 Son **dos procesos separados**. Primero el backend, porque el frontend consume la API real.
 
 ```powershell
-# Terminal 1 — API en http://localhost:8080
+# Terminal 1 — API en http://localhost:8081
 cd backend
 .\mvnw.cmd spring-boot:run
 
-# Terminal 2 — SPA en http://localhost:4200
+# Terminal 2 — SPA en http://localhost:4201
 cd frontend
 npm install
 npm start
@@ -70,7 +70,7 @@ Cualquiera puede registrarse desde `/registro`: el alta siempre nace como `CLIEN
 - **Solapamiento**: `409 Conflict` si una reserva se superpone con otra de la misma cancha.
 - **Monto**: por hora iniciada (`ceil(minutos / 60)`), no por hora exacta.
 - **Contratos**: las respuestas usan DTOs; el hash BCrypt de la clave nunca sale por la API.
-- **CORS**: habilitado solo para `http://localhost:4200` y `http://127.0.0.1:4200`.
+- **CORS**: habilitado solo para `http://localhost:4201` y `http://127.0.0.1:4201`.
 
 El detalle de los endpoints y de la matriz de permisos está en `backend/README.md`.
 
