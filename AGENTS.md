@@ -54,11 +54,12 @@ propio sigue existiendo y sigue funcionando.
   la base en cada request y el frontend lo obtiene de `GET /api/auth/me`.
 - El registro público (`POST /api/usuarios`) crea siempre un `CLIENTE`.
 - Un `CLIENTE` solo ve, reprograma y cancela **sus** reservas (reserva ajena → `403`).
-- Solapamiento de reservas → `409`.
+- La cancha y el horario viven en `Ocupacion`; `Reserva` solo la referencia.
+- Solapamiento de ocupaciones → `409`.
 - Monto por hora iniciada: `horas = (minutos + 59) / 60`.
 - `POST /api/usuarios` exige clave; `PUT /api/usuarios/{id}` la acepta opcional
   (vacía = no cambiar).
-- `PUT /api/reservas/{id}` ignora el `usuarioId` y nunca acepta `estadoReserva` ni
+- `PUT /api/reservas/{id}` ignora el `usuarioId` y nunca acepta `estado` ni
   `montoTotal`: los calcula el backend.
 
 El detalle completo está en `backend/AGENTS.md`.

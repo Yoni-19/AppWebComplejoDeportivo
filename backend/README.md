@@ -100,8 +100,8 @@ Un rol sin permiso recibe `403` con el envelope JSON `{ timestamp, status, error
 
 Reglas de negocio implementadas:
 
-- **Solapamiento de reservas**: `409 Conflict` si se superpone con otra reserva de la misma
-  cancha. Una reserva `CANCELADA` no bloquea.
+- **Solapamiento de ocupaciones**: `409 Conflict` si se superpone con otra ocupación de la
+  misma cancha. Una ocupación con `activa = false` no bloquea.
 - **Monto**: se cobra por hora iniciada (`ceil` de los minutos / 60), no por hora exacta.
 - **Contratos**: las respuestas usan DTOs (`dto/`), nunca las entidades. El hash BCrypt de
   la clave nunca sale por la API.

@@ -8,7 +8,7 @@
 ## Build y run
 
 - **El build oficial es Maven.** `mvn` NO está en el PATH de esta máquina: usá el wrapper.
-- `.\mvnw.cmd clean compile` — build completo (39 fuentes).
+- `.\mvnw.cmd clean compile` — build completo (45 fuentes).
 - `.\mvnw.cmd spring-boot:run` — levanta en `http://localhost:8081`.
 - `.\mvnw.cmd test` — tests. Requieren MySQL arriba (el test es un `@SpringBootTest`).
 - MySQL: `localhost:3306`, user `root`, pass `mysql`, base `db_complejoArquitectura`.
@@ -25,7 +25,7 @@ clases nuevas. No hace falta bajar y volver a levantar para probar un cambio de 
 
 ## Sin Lombok (desde 2026-10-24)
 
-El proyecto **no usa Lombok**. Las 4 entidades tienen getters, setters y constructor vacío
+El proyecto **no usa Lombok**. Las 5 entidades tienen getters, setters y constructor vacío
 explícitos; las 14 clases de `config/`, `controllers/` y `service/` tienen constructor propio
 en lugar de `@RequiredArgsConstructor`. Al agregar un campo `final` nuevo en cualquiera de esas
 clases hay que **agregarlo también al constructor**.
@@ -60,9 +60,9 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
 
 ## Convenciones
 
-- Idioma del código y los comentarios: español. Nombres de dominio: `Cancha`, `Reserva`,
-  `Pago`, `Usuario`, `EstadoReserva`, `TipoDeporte`. Endpoints en inglés/plural
-  (`/api/canchas`, `/api/reservas`, `/api/pagos`, `/api/usuarios`).
+- Idioma del código y los comentarios: español. Nombres de dominio: `Cancha`, `Ocupacion`,
+  `Reserva`, `Pago`, `Usuario`, `EstadoServicio`, `TipoOcupacion`, `TipoDeporte`. Endpoints en
+  inglés/plural (`/api/canchas`, `/api/reservas`, `/api/pagos`, `/api/usuarios`).
 - **Nunca serializar entidades**: todo sale por DTOs (`dto/`). `Usuario.clave` es el hash
   BCrypt y jamás debe viajar en una respuesta.
 - Errores: `@RestControllerAdvice` centralizado + `server.error.include-message=always`.
@@ -100,8 +100,10 @@ base existente a mano: `UPDATE usuario SET rol = 'ADMIN' WHERE correo = 'admin@e
 
 ## Reglas de negocio
 
-- Solapamiento de reservas → `409 Conflict` (`ReservaRepository.existeSolapamiento`).
-  `CANCELADA` no bloquea; al actualizar se excluye la propia reserva.
+- La cancha y el horario viven en `Ocupacion` (calendario único); `Reserva` solo la
+  referencia. Cancelar una reserva deja `Ocupacion.activa = false`.
+- Solapamiento de ocupaciones → `409 Conflict` (`OcupacionRepository.existeSolapamiento`).
+  Una ocupación inactiva no bloquea; al reprogramar se excluye la propia ocupación.
 - Monto por **hora iniciada**: `horas = (minutos + 59) / 60`. No usar `Duration.toHours()`.
 - `PUT /api/usuarios/{id}` acepta clave opcional (`UsuarioUpdateRequest`): si viene `null`,
   la clave no cambia.
@@ -115,6 +117,6 @@ base existente a mano: `UPDATE usuario SET rol = 'ADMIN' WHERE correo = 'admin@e
 - `DELETE /api/usuarios/{id}` y `DELETE /api/canchas/{id}` devuelven `409` si el registro tiene
   reservas o pagos asociados (`existsByUsuario_Id` / `existsByCancha_Id`).
 - `PUT /api/reservas/{id}` **ignora el `usuarioId`**: el cliente de una reserva existente no se
-  puede cambiar. `estadoReserva` tampoco se puede enviar: el backend lo calcula.
+  puede cambiar. `estado` tampoco se puede enviar: el backend lo calcula.
 - Cualquier violación de FK que se escape a la base devuelve `409` (handler de
   `DataIntegrityViolationException`), nunca `500`.

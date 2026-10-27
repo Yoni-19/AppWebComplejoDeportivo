@@ -45,7 +45,7 @@ src/app/
 
 - `POST /api/usuarios` exige clave; `PUT /api/usuarios/{id}` la acepta opcional
   (vacía = no cambiar la actual).
-- `PUT /api/reservas/{id}` ignora el `usuarioId` y nunca acepta `estadoReserva` ni
+- `PUT /api/reservas/{id}` ignora el `usuarioId` y nunca acepta `estado` ni
   `montoTotal`: los calcula el backend.
 - `POST /api/pagos` no acepta `monto`: el servicio lo fuerza al total de la reserva.
 - La solapamiento de horarios devuelve `409`.

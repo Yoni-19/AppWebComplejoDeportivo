@@ -67,7 +67,7 @@ Cualquiera puede registrarse desde `/registro`: el alta siempre nace como `CLIEN
 
 - **Roles**: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`. El JWT solo lleva el correo y el rol se
   lee de la base en cada request, así que un cambio de rol aplica al instante.
-- **Solapamiento**: `409 Conflict` si una reserva se superpone con otra de la misma cancha.
+- **Solapamiento**: `409 Conflict` si una ocupación se superpone con otra de la misma cancha.
 - **Monto**: por hora iniciada (`ceil(minutos / 60)`), no por hora exacta.
 - **Contratos**: las respuestas usan DTOs; el hash BCrypt de la clave nunca sale por la API.
 - **CORS**: habilitado solo para `http://localhost:4201` y `http://127.0.0.1:4201`.
