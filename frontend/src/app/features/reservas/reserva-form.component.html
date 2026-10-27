@@ -70,11 +70,11 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Estado</mat-label>
-          <input matInput [value]="estadoActual() ?? 'PENDIENTE'" readonly />
+          <input matInput [value]="estadoActual() ?? 'CONFIRMADA'" readonly />
           @if (isEdit()) {
             <mat-hint>El estado lo define el backend y no se puede editar desde aquí</mat-hint>
           } @else {
-            <mat-hint>Las reservas nuevas se crean en estado PENDIENTE</mat-hint>
+            <mat-hint>Las reservas nuevas se crean en estado CONFIRMADA</mat-hint>
           }
         </mat-form-field>
 

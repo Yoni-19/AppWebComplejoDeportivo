@@ -13,7 +13,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { Cancha } from '../../core/models/cancha.model';
 import { Cliente } from '../../core/models/cliente.model';
-import { EstadoReserva, ReservaAlta } from '../../core/models/reserva.model';
+import { EstadoServicio, ReservaAlta } from '../../core/models/reserva.model';
 import { AuthService } from '../../core/services/auth.service';
 import { PageHeader } from '../../shared/ui/page-header.component';
 import { CanchaService } from '../canchas/cancha.service';
@@ -51,7 +51,7 @@ export class ReservaFormComponent {
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
   /** Estado actual de la reserva; el backend lo calcula y no se puede enviar. */
-  readonly estadoActual = signal<EstadoReserva | null>(null);
+  readonly estadoActual = signal<EstadoServicio | null>(null);
   private editingId: number | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -85,7 +85,7 @@ export class ReservaFormComponent {
             this.errorMessage.set('No existe la reserva solicitada.');
             return;
           }
-          this.estadoActual.set(reserva.estadoReserva);
+          this.estadoActual.set(reserva.estado);
           this.form.patchValue({
             usuarioId: reserva.usuarioId,
             canchaId: reserva.canchaId,

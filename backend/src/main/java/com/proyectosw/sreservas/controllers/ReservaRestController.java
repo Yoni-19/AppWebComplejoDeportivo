@@ -48,13 +48,13 @@ public class ReservaRestController {
 
     @PostMapping
     public ResponseEntity<ReservaResponse> crear(@Valid @RequestBody ReservaRequest request){
-        ReservaResponse nuevo = ReservaResponse.toResponse(service.crear(request.toEntity()));
+        ReservaResponse nuevo = ReservaResponse.toResponse(service.crear(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
 
     @PutMapping ("/{id}")
     public ResponseEntity<ReservaResponse> actualizar(@PathVariable Integer id, @Valid @RequestBody ReservaRequest request){
-        return ResponseEntity.ok(ReservaResponse.toResponse(service.actualizar(id, request.toEntity())));
+        return ResponseEntity.ok(ReservaResponse.toResponse(service.actualizar(id, request)));
     }
 
     @DeleteMapping ("/{id}")

@@ -28,7 +28,7 @@
   font-weight: 600;
 }
 
-.estado-pendiente {
+.estado-en_curso {
   background: var(--mat-sys-tertiary-container);
   color: var(--mat-sys-on-tertiary-container);
 }
@@ -46,4 +46,9 @@
 .estado-cancelada {
   background: var(--mat-sys-error-container);
   color: var(--mat-sys-on-error-container);
+}
+
+.estado-no_asistio {
+  background: var(--mat-sys-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
 }

@@ -21,12 +21,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.proyectosw.sreservas.dto.ReservaRequest;
 import com.proyectosw.sreservas.model.Cancha;
+import com.proyectosw.sreservas.model.Ocupacion;
 import com.proyectosw.sreservas.model.Reserva;
 import com.proyectosw.sreservas.model.Usuario;
-import com.proyectosw.sreservas.model.enums.EstadoReserva;
+import com.proyectosw.sreservas.model.enums.EstadoServicio;
 import com.proyectosw.sreservas.model.enums.Rol;
+import com.proyectosw.sreservas.model.enums.TipoOcupacion;
 import com.proyectosw.sreservas.repository.CanchaRepository;
+import com.proyectosw.sreservas.repository.OcupacionRepository;
 import com.proyectosw.sreservas.repository.ReservaRepository;
 import com.proyectosw.sreservas.repository.UsuarioRepository;
 
@@ -35,6 +39,8 @@ class ReservaServiceTests {
 
     @Mock
     private ReservaRepository repository;
+    @Mock
+    private OcupacionRepository ocupacionRepository;
     @Mock
     private CanchaRepository canchaRepository;
     @Mock
@@ -82,23 +88,25 @@ class ReservaServiceTests {
         when(canchaRepository.findById(1)).thenReturn(Optional.of(canchaActiva()));
         when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Reserva creada = service.crear(reservaPara(1, 3));
+        Reserva creada = service.crear(request(1, 3));
 
         assertThat(creada.getUsuario().getId()).isEqualTo(2);
-        assertThat(creada.getEstadoReserva()).isEqualTo(EstadoReserva.PENDIENTE);
+        assertThat(creada.getEstado()).isEqualTo(EstadoServicio.CONFIRMADA);
         assertThat(creada.getMontoTotal()).isEqualByComparingTo("150.00");
+        assertThat(creada.getOcupacion().getTipo()).isEqualTo(TipoOcupacion.RESERVA);
+        assertThat(creada.getOcupacion().isActiva()).isTrue();
     }
 
     @Test
     void elClientePuedeReprogramarSuPropiaReserva() {
         when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
         when(repository.findById(5)).thenReturn(Optional.of(reservaDe(2)));
-        when(canchaRepository.findById(1)).thenReturn(Optional.of(canchaActiva()));
         when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Reserva reprogramada = service.actualizar(5, reservaPara(1, null));
+        Reserva reprogramada = service.actualizar(5, request(1, null));
 
-        assertThat(reprogramada.getFechaHoraInicio()).isEqualTo(LocalDateTime.of(2026, 12, 1, 10, 0));
+        assertThat(reprogramada.getOcupacion().getFechaHoraInicio())
+                .isEqualTo(LocalDateTime.of(2026, 12, 1, 10, 0));
         assertThat(reprogramada.getMontoTotal()).isEqualByComparingTo("150.00");
     }
 
@@ -107,7 +115,7 @@ class ReservaServiceTests {
         when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
         when(repository.findById(5)).thenReturn(Optional.of(reservaDe(3)));
 
-        assertThatThrownBy(() -> service.actualizar(5, reservaPara(1, null)))
+        assertThatThrownBy(() -> service.actualizar(5, request(1, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
                 .isEqualTo(HttpStatus.FORBIDDEN);
@@ -130,10 +138,10 @@ class ReservaServiceTests {
     void noSePuedeReprogramarUnaReservaCompletada() {
         when(currentUser.get()).thenReturn(usuario(9, Rol.ADMIN));
         Reserva completada = reservaDe(2);
-        completada.setEstadoReserva(EstadoReserva.COMPLETADA);
+        completada.setEstado(EstadoServicio.COMPLETADA);
         when(repository.findById(5)).thenReturn(Optional.of(completada));
 
-        assertThatThrownBy(() -> service.actualizar(5, reservaPara(1, null)))
+        assertThatThrownBy(() -> service.actualizar(5, request(1, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
                 .isEqualTo(HttpStatus.CONFLICT);
@@ -154,21 +162,24 @@ class ReservaServiceTests {
         Reserva reserva = new Reserva();
         reserva.setId(5);
         reserva.setUsuario(usuario(usuarioId, Rol.CLIENTE));
-        reserva.setCancha(canchaActiva());
-        reserva.setFechaHoraInicio(LocalDateTime.of(2026, 12, 1, 10, 0));
-        reserva.setFechaHoraFin(LocalDateTime.of(2026, 12, 1, 11, 0));
+
+        Ocupacion ocupacion = new Ocupacion();
+        ocupacion.setId(50);
+        ocupacion.setCancha(canchaActiva());
+        ocupacion.setFechaHoraInicio(LocalDateTime.of(2026, 12, 1, 10, 0));
+        ocupacion.setFechaHoraFin(LocalDateTime.of(2026, 12, 1, 11, 0));
+        reserva.setOcupacion(ocupacion);
+        reserva.setEstado(EstadoServicio.CONFIRMADA);
+        reserva.setMontoTotal(new BigDecimal("75.00"));
         return reserva;
     }
 
-    private Reserva reservaPara(Integer canchaId, Integer usuarioId) {
-        Cancha cancha = new Cancha();
-        cancha.setId(canchaId);
-        Reserva reserva = new Reserva();
-        reserva.setCancha(cancha);
-        reserva.setUsuario(usuario(usuarioId, Rol.CLIENTE));
-        reserva.setFechaHoraInicio(LocalDateTime.of(2026, 12, 1, 10, 0));
-        reserva.setFechaHoraFin(LocalDateTime.of(2026, 12, 1, 11, 30));
-        return reserva;
+    private ReservaRequest request(Integer canchaId, Integer usuarioId) {
+        return new ReservaRequest(
+                LocalDateTime.of(2026, 12, 1, 10, 0),
+                LocalDateTime.of(2026, 12, 1, 11, 30),
+                canchaId,
+                usuarioId);
     }
 
     private Cancha canchaActiva() {

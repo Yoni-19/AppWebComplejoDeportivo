@@ -6,7 +6,7 @@ import { Reserva, ReservaAlta } from '../../core/models/reserva.model';
 
 /**
  * Real HTTP service — talks to the Spring Boot backend.
- * The payload omits estadoReserva and montoTotal: the backend computes both.
+ * The payload omits estado and montoTotal: the backend computes both.
  */
 @Injectable({ providedIn: 'root' })
 export class ReservaService {

@@ -41,8 +41,8 @@
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef>Estado</th>
         <td mat-cell *matCellDef="let r">
-          <span class="estado-chip" [class]="'estado-' + r.estadoReserva.toLowerCase()">
-            {{ r.estadoReserva }}
+          <span class="estado-chip" [class]="'estado-' + r.estado.toLowerCase()">
+            {{ r.estado }}
           </span>
         </td>
       </ng-container>

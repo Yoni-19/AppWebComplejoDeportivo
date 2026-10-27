@@ -1,9 +1,8 @@
 package com.proyectosw.sreservas.model;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
-import com.proyectosw.sreservas.model.enums.EstadoReserva;
+import com.proyectosw.sreservas.model.enums.EstadoServicio;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,37 +14,36 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * Reserva de un espacio deportivo hecha por un cliente.
+ *
+ * La cancha y el horario viven en {@link Ocupacion}; la reserva solo aporta el
+ * cliente, el estado y el monto. Asi el calendario tiene una sola fuente de verdad.
+ */
 @Entity
 public class Reserva {
     @Id @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @NotNull (message = "La fecha y hora de inicio es obligatoria")
-    @Column (nullable = false)
-    private LocalDateTime fechaHoraInicio;
-
-    @NotNull (message = "La fecha y hora de fin es obligatoria")
-    @Column (nullable = false)
-    private LocalDateTime fechaHoraFin;
-
-    @Column (nullable = false)
-    @Enumerated(EnumType.STRING)
-    private EstadoReserva estadoReserva;
-
-    @Column (nullable = false)
-    private BigDecimal montoTotal;
+    @NotNull (message = "La reserva debe indicar una ocupacion")
+    @OneToOne (fetch = FetchType.LAZY, optional = false)
+    @JoinColumn (name = "ocupacion_id", unique = true, nullable = false)
+    private Ocupacion ocupacion;
 
     @NotNull (message = "La reserva debe indicar un usuario")
     @ManyToOne (fetch = FetchType.LAZY)
     @JoinColumn (name = "usuario_id", nullable = false)
     private Usuario usuario;
-    
-    @NotNull (message = "La reserva debe indicar una cancha")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cancha_id", nullable = false)
-    private Cancha cancha;
+
+    @Column (nullable = false)
+    @Enumerated (EnumType.STRING)
+    private EstadoServicio estado;
+
+    @Column (nullable = false)
+    private BigDecimal montoTotal;
 
     public Reserva() {
     }
@@ -58,36 +56,12 @@ public class Reserva {
         this.id = id;
     }
 
-    public LocalDateTime getFechaHoraInicio() {
-        return fechaHoraInicio;
+    public Ocupacion getOcupacion() {
+        return ocupacion;
     }
 
-    public void setFechaHoraInicio(LocalDateTime fechaHoraInicio) {
-        this.fechaHoraInicio = fechaHoraInicio;
-    }
-
-    public LocalDateTime getFechaHoraFin() {
-        return fechaHoraFin;
-    }
-
-    public void setFechaHoraFin(LocalDateTime fechaHoraFin) {
-        this.fechaHoraFin = fechaHoraFin;
-    }
-
-    public EstadoReserva getEstadoReserva() {
-        return estadoReserva;
-    }
-
-    public void setEstadoReserva(EstadoReserva estadoReserva) {
-        this.estadoReserva = estadoReserva;
-    }
-
-    public BigDecimal getMontoTotal() {
-        return montoTotal;
-    }
-
-    public void setMontoTotal(BigDecimal montoTotal) {
-        this.montoTotal = montoTotal;
+    public void setOcupacion(Ocupacion ocupacion) {
+        this.ocupacion = ocupacion;
     }
 
     public Usuario getUsuario() {
@@ -98,11 +72,19 @@ public class Reserva {
         this.usuario = usuario;
     }
 
-    public Cancha getCancha() {
-        return cancha;
+    public EstadoServicio getEstado() {
+        return estado;
     }
 
-    public void setCancha(Cancha cancha) {
-        this.cancha = cancha;
+    public void setEstado(EstadoServicio estado) {
+        this.estado = estado;
+    }
+
+    public BigDecimal getMontoTotal() {
+        return montoTotal;
+    }
+
+    public void setMontoTotal(BigDecimal montoTotal) {
+        this.montoTotal = montoTotal;
     }
 }

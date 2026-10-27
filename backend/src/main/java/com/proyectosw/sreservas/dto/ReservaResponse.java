@@ -3,18 +3,20 @@ package com.proyectosw.sreservas.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.proyectosw.sreservas.model.Ocupacion;
 import com.proyectosw.sreservas.model.Reserva;
-import com.proyectosw.sreservas.model.enums.EstadoReserva;
+import com.proyectosw.sreservas.model.enums.EstadoServicio;
 
 /**
- * Reservation view. The nested {@code Usuario} and {@code Cancha} are
- * flattened to id + name to avoid serialization cycles and hash leakage.
+ * Reservation view. The court and the time range are read from the reservation's
+ * {@link Ocupacion}; the nested {@code Usuario} and {@code Cancha} are flattened to
+ * id + name to avoid serialization cycles and hash leakage.
  */
 public record ReservaResponse(
         Integer id,
         LocalDateTime fechaHoraInicio,
         LocalDateTime fechaHoraFin,
-        EstadoReserva estadoReserva,
+        EstadoServicio estado,
         BigDecimal montoTotal,
         Integer canchaId,
         String canchaNombre,
@@ -22,14 +24,15 @@ public record ReservaResponse(
         String usuarioNombre
 ) {
     public static ReservaResponse toResponse(Reserva reserva) {
+        Ocupacion ocupacion = reserva.getOcupacion();
         return new ReservaResponse(
                 reserva.getId(),
-                reserva.getFechaHoraInicio(),
-                reserva.getFechaHoraFin(),
-                reserva.getEstadoReserva(),
+                ocupacion.getFechaHoraInicio(),
+                ocupacion.getFechaHoraFin(),
+                reserva.getEstado(),
                 reserva.getMontoTotal(),
-                reserva.getCancha().getId(),
-                reserva.getCancha().getNombre(),
+                ocupacion.getCancha().getId(),
+                ocupacion.getCancha().getNombre(),
                 reserva.getUsuario().getId(),
                 reserva.getUsuario().getNombres() + " " + reserva.getUsuario().getApellidos()
         );

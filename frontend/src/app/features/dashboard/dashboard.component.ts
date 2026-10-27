@@ -23,7 +23,7 @@ export class DashboardComponent {
   private readonly canchasService = inject(CanchaService);
   private readonly clientesService = inject(ClienteService);
 
-  readonly reservasPendientes = signal(0);
+  readonly reservasEnCurso = signal(0);
   readonly reservasConfirmadas = signal(0);
   readonly totalReservas = signal(0);
   readonly canchasActivas = signal(0);
@@ -47,8 +47,8 @@ export class DashboardComponent {
     // El backend ya filtra: un CLIENTE recibe solo sus propias reservas.
     this.reservasService.list().subscribe((reservas) => {
       this.totalReservas.set(reservas.length);
-      this.reservasPendientes.set(reservas.filter((r) => r.estadoReserva === 'PENDIENTE').length);
-      this.reservasConfirmadas.set(reservas.filter((r) => r.estadoReserva === 'CONFIRMADA').length);
+      this.reservasEnCurso.set(reservas.filter((r) => r.estado === 'EN_CURSO').length);
+      this.reservasConfirmadas.set(reservas.filter((r) => r.estado === 'CONFIRMADA').length);
     });
 
     // Global counters only make sense (and are only allowed) for staff.

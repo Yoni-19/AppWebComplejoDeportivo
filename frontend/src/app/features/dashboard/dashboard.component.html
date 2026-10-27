@@ -8,8 +8,8 @@
     <mat-card class="stat-card">
       <mat-card-content>
         <mat-icon class="stat-icon">pending_actions</mat-icon>
-        <div class="stat-value">{{ reservasPendientes() }}</div>
-        <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas pendientes' : 'Reservas pendientes' }}</div>
+        <div class="stat-value">{{ reservasEnCurso() }}</div>
+        <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas en curso' : 'Reservas en curso' }}</div>
       </mat-card-content>
     </mat-card>
 
