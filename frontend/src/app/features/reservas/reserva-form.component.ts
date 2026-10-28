@@ -1,9 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -13,10 +15,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { Cancha } from '../../core/models/cancha.model';
 import { Cliente } from '../../core/models/cliente.model';
-import { EstadoServicio, ReservaAlta } from '../../core/models/reserva.model';
+import { METODOS_PAGO, MetodoPago } from '../../core/models/pago.model';
+import { DetalleReserva, EstadoServicio, ReservaAlta } from '../../core/models/reserva.model';
 import { AuthService } from '../../core/services/auth.service';
 import { PageHeader } from '../../shared/ui/page-header.component';
 import { CanchaService } from '../canchas/cancha.service';
+import { ClienteRapidoDialogComponent } from '../clientes/cliente-rapido-dialog.component';
 import { ClienteService } from '../clientes/cliente.service';
 import { ReservaService } from './reserva.service';
 
@@ -28,10 +32,17 @@ function toLocalDateTime(date: Date, time: string): string {
   return `${anio}-${mes}-${dia}T${time}`;
 }
 
+/** Minutes between two "HH:mm" values; negative when the end is before the start. */
+function minutosEntre(inicio: string, fin: string): number {
+  const [horaInicio, minutoInicio] = inicio.split(':').map(Number);
+  const [horaFin, minutoFin] = fin.split(':').map(Number);
+  return (horaFin * 60 + minutoFin) - (horaInicio * 60 + minutoInicio);
+}
+
 @Component({
   selector: 'app-reserva-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatCard, MatCardContent, MatInputModule, MatSelectModule, MatDatepickerModule, MatButton, MatIconModule, MatChipsModule, MatProgressSpinnerModule, RouterLink, PageHeader],
+  imports: [ReactiveFormsModule, MatCard, MatCardContent, MatInputModule, MatSelectModule, MatDatepickerModule, MatDialogModule, MatButton, MatIconModule, MatChipsModule, MatProgressSpinnerModule, RouterLink, PageHeader, DecimalPipe],
   templateUrl: './reserva-form.component.html',
   styleUrl: './reserva-form.component.scss',
 })
@@ -43,6 +54,7 @@ export class ReservaFormComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   readonly auth = inject(AuthService);
 
   readonly canchas = signal<Cancha[]>([]);
@@ -52,6 +64,9 @@ export class ReservaFormComponent {
   readonly errorMessage = signal<string | null>(null);
   /** Estado actual de la reserva; el backend lo calcula y no se puede enviar. */
   readonly estadoActual = signal<EstadoServicio | null>(null);
+  /** Detalle tipo pedido que devuelve el backend al editar. */
+  readonly detalle = signal<DetalleReserva[]>([]);
+  readonly metodosPago = METODOS_PAGO;
   private editingId: number | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -61,7 +76,34 @@ export class ReservaFormComponent {
     fecha: [null as Date | null, Validators.required],
     horaInicio: ['10:00', Validators.required],
     horaFin: ['12:00', Validators.required],
+    // Solo se usa al crear: registra el anticipo del 50%.
+    metodoPago: [null as MetodoPago | null, Validators.required],
   });
+
+  /**
+   * Vista previa del cobro con la misma regla del backend: horas iniciadas y
+   * anticipo del 50%. Al editar no se muestra porque el total manda desde la API.
+   */
+  get resumen(): { cancha: string; horas: number; precioHora: number; total: number; anticipo: number; saldo: number } | null {
+    const { canchaId, horaInicio, horaFin } = this.form.getRawValue();
+    const cancha = this.canchas().find((c) => c.id === canchaId);
+    if (!cancha || !horaInicio || !horaFin) return null;
+
+    const minutos = minutosEntre(horaInicio, horaFin);
+    if (minutos <= 0) return null;
+
+    const horas = Math.ceil(minutos / 60);
+    const total = cancha.precioPorHora * horas;
+    const anticipo = Math.round(total * 50) / 100;
+    return {
+      cancha: cancha.nombre,
+      horas,
+      precioHora: cancha.precioPorHora,
+      total,
+      anticipo,
+      saldo: total - anticipo,
+    };
+  }
 
   constructor() {
     this.canchaService.list().subscribe({
@@ -86,6 +128,7 @@ export class ReservaFormComponent {
             return;
           }
           this.estadoActual.set(reserva.estado);
+          this.detalle.set(reserva.detalle ?? []);
           this.form.patchValue({
             usuarioId: reserva.usuarioId,
             canchaId: reserva.canchaId,
@@ -95,6 +138,8 @@ export class ReservaFormComponent {
           });
           // El backend ignora el usuario al actualizar: se muestra bloqueado.
           this.form.controls.usuarioId.disable();
+          // El anticipo ya se registro al crear: no se cobra de nuevo al reprogramar.
+          this.form.controls.metodoPago.disable();
         },
         error: (err) => {
           this.errorMessage.set(apiErrorMessage(err, 'No se pudo cargar la reserva'));
@@ -111,12 +156,32 @@ export class ReservaFormComponent {
       usuarioId.clearValidators();
     } else {
       usuarioId.setValidators(Validators.required);
-      this.clienteService.list().subscribe({
+      this.clienteService.listClientes().subscribe({
         next: (clientes) => this.clientes.set(clientes),
         error: (err) => this.errorMessage.set(apiErrorMessage(err, 'No se pudieron cargar los clientes')),
       });
     }
     usuarioId.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Alta presencial sin perder cancha, fecha ni horario. */
+  registrarCliente(): void {
+    if (!this.auth.esStaff() || this.isEdit()) return;
+
+    this.dialog
+      .open(ClienteRapidoDialogComponent, { width: '520px', maxWidth: '95vw' })
+      .afterClosed()
+      .subscribe((cliente?: Cliente) => {
+        if (!cliente || cliente.id == null) return;
+
+        const nuevo = cliente;
+        const nuevoId = cliente.id;
+        this.clientes.update((lista) =>
+          lista.some((c) => c.id === nuevoId) ? lista : [...lista, nuevo],
+        );
+        this.form.controls.usuarioId.setValue(nuevoId);
+        this.snackBar.open('Cliente registrado.', 'Cerrar', { duration: 2500 });
+      });
   }
 
   submit(): void {
@@ -125,7 +190,7 @@ export class ReservaFormComponent {
       return;
     }
 
-    const { usuarioId, canchaId, fecha, horaInicio, horaFin } = this.form.getRawValue();
+    const { usuarioId, canchaId, fecha, horaInicio, horaFin, metodoPago } = this.form.getRawValue();
     if (canchaId == null || fecha == null || (!this.auth.esCliente() && usuarioId == null)) {
       this.form.markAllAsTouched();
       return;
@@ -147,6 +212,9 @@ export class ReservaFormComponent {
     };
     if (usuarioId != null) {
       payload.usuarioId = usuarioId;
+    }
+    if (!this.isEdit()) {
+      payload.metodoPago = metodoPago ?? undefined;
     }
 
     const request$ = this.isEdit()

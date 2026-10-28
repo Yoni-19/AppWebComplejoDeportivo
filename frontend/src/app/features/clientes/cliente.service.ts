@@ -17,6 +17,11 @@ export class ClienteService {
     return this.http.get<Cliente[]>(this.url);
   }
 
+  /** GET /api/usuarios?rol=CLIENTE — para selectores y contadores, nunca personal. */
+  listClientes(): Observable<Cliente[]> {
+    return this.http.get<Cliente[]>(this.url, { params: { rol: 'CLIENTE' } });
+  }
+
   get(id: number): Observable<Cliente | undefined> {
     return this.http.get<Cliente>(`${this.url}/${id}`).pipe(
       catchError((err: HttpErrorResponse) => (err.status === 404 ? of(undefined) : throwError(() => err))),

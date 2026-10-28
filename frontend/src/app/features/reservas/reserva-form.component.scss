@@ -16,12 +16,46 @@
   grid-column: 1 / -1;
 }
 
+.cliente-nuevo {
+  justify-self: start;
+  margin-bottom: 8px;
+}
+
 .form-error {
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--mat-sys-error);
   font-size: 0.9rem;
+}
+
+.resumen-cobro,
+.detalle-reserva {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--mat-sys-surface-container-low);
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+}
+
+.resumen-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+  font-size: 0.9rem;
+}
+
+.resumen-total {
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  margin-top: 4px;
+  padding-top: 8px;
+  font-weight: 600;
 }
 
 .form-actions {

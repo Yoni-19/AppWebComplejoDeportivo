@@ -52,3 +52,26 @@
   background: var(--mat-sys-surface-variant);
   color: var(--mat-sys-on-surface-variant);
 }
+
+.cuenta-abierta {
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.cuenta-cerrada {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
+
+.cuenta-anulada {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.saldo {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  white-space: nowrap;
+}

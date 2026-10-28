@@ -52,10 +52,36 @@
         <td mat-cell *matCellDef="let r">{{ r.montoTotal | number: '1.0-0' }}</td>
       </ng-container>
 
+      <ng-container matColumnDef="cuenta">
+        <th mat-header-cell *matHeaderCellDef>Cuenta</th>
+        <td mat-cell *matCellDef="let r">
+          @if (r.estadoCuenta) {
+            <span class="estado-chip" [class]="'cuenta-' + r.estadoCuenta.toLowerCase()">
+              {{ r.estadoCuenta }}
+            </span>
+            <span class="saldo">Saldo {{ (r.saldo ?? 0) | number: '1.2-2' }}</span>
+          } @else {
+            <span>—</span>
+          }
+        </td>
+      </ng-container>
+
       @if (puedeGestionar()) {
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef>Acciones</th>
           <td mat-cell *matCellDef="let r">
+            @if (auth.esStaff() && r.estadoCuenta === 'ABIERTA' && (r.saldo ?? 0) > 0) {
+              <button mat-icon-button [matMenuTriggerFor]="pagoMenu" aria-label="Registrar pago">
+                <mat-icon>payments</mat-icon>
+              </button>
+              <mat-menu #pagoMenu="matMenu">
+                @for (metodo of metodosPago; track metodo) {
+                  <button mat-menu-item (click)="cobrarSaldo(r, metodo)">
+                    Cobrar saldo · {{ metodo }}
+                  </button>
+                }
+              </mat-menu>
+            }
             <a mat-icon-button [routerLink]="['/reservas', r.id, 'editar']" aria-label="Editar">
               <mat-icon>edit</mat-icon>
             </a>

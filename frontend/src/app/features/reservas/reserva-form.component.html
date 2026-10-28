@@ -23,6 +23,17 @@
               <mat-hint>El cliente no se puede cambiar en una reserva existente</mat-hint>
             }
           </mat-form-field>
+          @if (!isEdit()) {
+            <button
+              mat-stroked-button
+              type="button"
+              class="full-width cliente-nuevo"
+              (click)="registrarCliente()"
+            >
+              <mat-icon>person_add</mat-icon>
+              <span>Registrar cliente nuevo</span>
+            </button>
+          }
         } @else {
           <mat-form-field appearance="outline">
             <mat-label>Cliente</mat-label>
@@ -77,6 +88,55 @@
             <mat-hint>Las reservas nuevas se crean en estado CONFIRMADA</mat-hint>
           }
         </mat-form-field>
+
+        @if (!isEdit()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Método de pago del anticipo</mat-label>
+            <mat-select formControlName="metodoPago">
+              @for (metodo of metodosPago; track metodo) {
+                <mat-option [value]="metodo">{{ metodo }}</mat-option>
+              }
+            </mat-select>
+            @if (form.controls.metodoPago.hasError('required')) {
+              <mat-error>Selecciona cómo se paga el anticipo</mat-error>
+            }
+            <mat-hint>Se cobra el 50% del total al confirmar</mat-hint>
+          </mat-form-field>
+        }
+
+        @if (resumen; as r) {
+          <div class="full-width resumen-cobro">
+            <h3>Resumen del cobro</h3>
+            <div class="resumen-linea">
+              <span>{{ r.cancha }} — {{ r.horas }} h × {{ r.precioHora | number: '1.2-2' }}</span>
+              <span>{{ r.total | number: '1.2-2' }}</span>
+            </div>
+            <div class="resumen-linea resumen-total">
+              <span>Total</span>
+              <span>{{ r.total | number: '1.2-2' }}</span>
+            </div>
+            <div class="resumen-linea">
+              <span>Anticipo (50%)</span>
+              <span>{{ r.anticipo | number: '1.2-2' }}</span>
+            </div>
+            <div class="resumen-linea">
+              <span>Saldo al cerrar</span>
+              <span>{{ r.saldo | number: '1.2-2' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (isEdit() && detalle().length) {
+          <div class="full-width detalle-reserva">
+            <h3>Detalle de la reserva</h3>
+            @for (linea of detalle(); track linea.id) {
+              <div class="resumen-linea">
+                <span>{{ linea.tipo }} · {{ linea.descripcion }} ({{ linea.cantidad }} × {{ linea.precioUnitario | number: '1.2-2' }})</span>
+                <span>{{ linea.subtotal | number: '1.2-2' }}</span>
+              </div>
+            }
+          </div>
+        }
 
         @if (errorMessage()) {
           <div class="full-width form-error" role="alert">
