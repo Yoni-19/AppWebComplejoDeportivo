@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -18,6 +19,7 @@ import com.proyectosw.sreservas.dto.UsuarioRequest;
 import com.proyectosw.sreservas.dto.UsuarioResponse;
 import com.proyectosw.sreservas.dto.UsuarioRolRequest;
 import com.proyectosw.sreservas.dto.UsuarioUpdateRequest;
+import com.proyectosw.sreservas.model.enums.Rol;
 import com.proyectosw.sreservas.service.UsuarioService;
 
 import jakarta.validation.Valid;
@@ -32,8 +34,8 @@ public class UsuarioRestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UsuarioResponse>> listarTodos() {
-        List<UsuarioResponse> usuarios = service.listarTodos().stream()
+    public ResponseEntity<List<UsuarioResponse>> listarTodos(@RequestParam(required = false) Rol rol) {
+        List<UsuarioResponse> usuarios = service.listar(rol).stream()
                 .map(UsuarioResponse::toResponse)
                 .toList();
         return ResponseEntity.ok(usuarios);

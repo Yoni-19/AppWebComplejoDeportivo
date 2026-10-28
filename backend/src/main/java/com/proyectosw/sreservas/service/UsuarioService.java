@@ -20,20 +20,42 @@ public class UsuarioService {
     private final UsuarioRepository repository;
     private final ReservaRepository reservaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CurrentUserService currentUser;
 
     public UsuarioService(final UsuarioRepository repository, final ReservaRepository reservaRepository,
-            final PasswordEncoder passwordEncoder) {
+            final PasswordEncoder passwordEncoder, final CurrentUserService currentUser) {
         this.repository = repository;
         this.reservaRepository = reservaRepository;
         this.passwordEncoder = passwordEncoder;
+        this.currentUser = currentUser;
     }
 
-    public List<Usuario> listarTodos() {
-        return repository.findAll();
+    /**
+     * Un ADMIN ve a todos menos a sí mismo; un RECEPCIONISTA ve solo clientes.
+     * El filtro por rol es opcional y lo usan las pantallas que necesitan
+     * únicamente clientes (selector de reservas, contador del dashboard).
+     */
+    public List<Usuario> listar(Rol filtro) {
+        Usuario actual = currentUser.get();
+        if (!Rol.ADMIN.equals(actual.getRol())) {
+            return repository.findByRol(Rol.CLIENTE);
+        }
+
+        List<Usuario> usuarios = filtro != null ? repository.findByRol(filtro) : repository.findAll();
+        return usuarios.stream()
+                .filter(usuario -> !usuario.getId().equals(actual.getId()))
+                .toList();
     }
 
     public Optional<Usuario> buscarPorId(Integer id) {
-        return repository.findById(id);
+        Optional<Usuario> usuario = repository.findById(id);
+        // Un recepcionista no puede abrir la ficha de un admin u otro recepcionista.
+        if (usuario.isPresent() && !Rol.ADMIN.equals(currentUser.rol())
+                && !Rol.CLIENTE.equals(usuario.get().getRol())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No podés consultar a un usuario del personal");
+        }
+        return usuario;
     }
 
     @Transactional 
@@ -57,6 +79,12 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No existe el usuario con id " + id));
 
+        // Un recepcionista puede corregir clientes, nunca al personal ni a su propia cuenta.
+        if (!Rol.ADMIN.equals(currentUser.rol()) && !Rol.CLIENTE.equals(existente.getRol())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "No podés editar a un usuario del personal");
+        }
+
         Optional<Usuario> conMismoCorreo = repository.findByCorreo(datos.getCorreo());
         if (conMismoCorreo.isPresent() && !conMismoCorreo.get().getId().equals(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");
@@ -77,6 +105,11 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No existe el usuario con id " + id));
 
+        if (usuario.getId().equals(currentUser.get().getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No podés cambiar tu propio rol");
+        }
+
         // Sin esta guarda, el ultimo ADMIN puede degradarse y nadie queda habilitado
         // para volver a asignar roles: el sistema quedaria trabado hasta tocar la base.
         if (Rol.ADMIN.equals(usuario.getRol()) && !Rol.ADMIN.equals(rol)
@@ -94,6 +127,10 @@ public class UsuarioService {
         if (!repository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No existe el usuario con id " + id);
+        }
+        if (id.equals(currentUser.get().getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No podés eliminar tu propia cuenta");
         }
         if (reservaRepository.existsByUsuario_Id(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

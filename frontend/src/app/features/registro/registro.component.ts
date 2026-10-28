@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,14 +7,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/http/api-error';
+import {
+  ClavesIgualesErrorStateMatcher,
+  clavesIguales,
+} from '../../shared/validators/claves-iguales';
 import { ClienteService } from '../clientes/cliente.service';
-
-/** Both password fields must match; the error is shown on the repeat field. */
-function clavesIguales(group: AbstractControl): ValidationErrors | null {
-  const clave = group.get('clave')?.value;
-  const repetir = group.get('repetirClave')?.value;
-  return clave === repetir ? null : { clavesDistintas: true };
-}
 
 @Component({
   selector: 'app-registro',
@@ -30,6 +27,7 @@ export class RegistroComponent {
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly matcher = new ClavesIgualesErrorStateMatcher();
 
   readonly form = this.fb.nonNullable.group(
     {
@@ -42,14 +40,24 @@ export class RegistroComponent {
     { validators: clavesIguales },
   );
 
+  constructor() {
+    this.form.valueChanges.subscribe(() => this.errorMessage.set(null));
+  }
+
   submit(): void {
+    this.errorMessage.set(null);
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.errorMessage.set(
+        this.form.hasError('clavesDistintas')
+          ? 'Las contraseñas no coinciden.'
+          : 'Revisá los campos marcados antes de continuar.',
+      );
       return;
     }
 
     this.loading.set(true);
-    this.errorMessage.set(null);
 
     const { nombres, apellidos, correo, clave } = this.form.getRawValue();
     this.clientes.create({ nombres, apellidos, correo, clave }).subscribe({

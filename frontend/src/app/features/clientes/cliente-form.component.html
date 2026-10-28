@@ -1,6 +1,9 @@
 <section class="page">
-  <app-page-header [title]="isEdit() ? 'Editar cliente' : 'Nuevo cliente'" subtitle="Datos del cliente">
-    </app-page-header>
+  <app-page-header
+    [title]="esMiPerfil() ? 'Mi perfil' : (isEdit() ? 'Editar cliente' : 'Nuevo cliente')"
+    [subtitle]="esMiPerfil() ? 'Datos de tu cuenta' : 'Datos del cliente'"
+  >
+  </app-page-header>
 
   <mat-card class="form-card">
     <mat-card-content>
@@ -12,6 +15,8 @@
             <mat-error>Los nombres son obligatorios</mat-error>
           } @else if (form.controls.nombres.hasError('minlength')) {
             <mat-error>Mínimo 2 caracteres</mat-error>
+          } @else if (form.controls.nombres.hasError('maxlength')) {
+            <mat-error>Máximo 100 caracteres</mat-error>
           }
         </mat-form-field>
 
@@ -22,6 +27,8 @@
             <mat-error>Los apellidos son obligatorios</mat-error>
           } @else if (form.controls.apellidos.hasError('minlength')) {
             <mat-error>Mínimo 2 caracteres</mat-error>
+          } @else if (form.controls.apellidos.hasError('maxlength')) {
+            <mat-error>Máximo 100 caracteres</mat-error>
           }
         </mat-form-field>
 
@@ -32,21 +39,29 @@
             <mat-error>El correo es obligatorio</mat-error>
           } @else if (form.controls.correo.hasError('email')) {
             <mat-error>Ingresa un correo válido</mat-error>
+          } @else if (form.controls.correo.hasError('maxlength')) {
+            <mat-error>Máximo 100 caracteres</mat-error>
           }
         </mat-form-field>
 
-        @if (!isEdit()) {
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Contraseña</mat-label>
-            <input matInput type="password" formControlName="clave" autocomplete="new-password" />
-            @if (form.controls.clave.hasError('required')) {
-              <mat-error>La contraseña es obligatoria</mat-error>
-            } @else if (form.controls.clave.hasError('minlength')) {
-              <mat-error>Mínimo 2 caracteres</mat-error>
-            }
-            <mat-hint>Es la contraseña con la que el cliente inicia sesión</mat-hint>
-          </mat-form-field>
-        }
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ isEdit() ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</mat-label>
+          <input matInput type="password" formControlName="clave" autocomplete="new-password" />
+          @if (form.controls.clave.hasError('required')) {
+            <mat-error>La contraseña es obligatoria</mat-error>
+          } @else if (form.controls.clave.hasError('minlength')) {
+            <mat-error>Mínimo 2 caracteres</mat-error>
+          } @else if (form.controls.clave.hasError('maxlength')) {
+            <mat-error>Máximo 100 caracteres</mat-error>
+          }
+          <mat-hint>
+            {{
+              isEdit()
+                ? 'Dejar vacío para no cambiarla.'
+                : 'La clave con la que el cliente inicia sesión. Entregala en mano.'
+            }}
+          </mat-hint>
+        </mat-form-field>
 
         @if (errorMessage()) {
           <div class="full-width form-error" role="alert">

@@ -56,7 +56,7 @@ export class DashboardComponent {
       this.canchasService.list().subscribe((canchas) => {
         this.canchasActivas.set(canchas.filter((c) => c.activa).length);
       });
-      this.clientesService.list().subscribe((clientes) => {
+      this.clientesService.listClientes().subscribe((clientes) => {
         this.totalClientes.set(clientes.length);
       });
     }

@@ -64,6 +64,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()   // registro público (ACTIVO)
                 // .requestMatchers(HttpMethod.POST, "/api/usuarios").authenticated() // variante: exigir token (descomentar para cambiar)
                 .requestMatchers(HttpMethod.PUT, "/api/usuarios/*/rol").hasRole("ADMIN")
+                // Edición de datos: el recepcionista solo puede tocar CLIENTE (guarda en UsuarioService).
+                .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAnyRole("ADMIN", "RECEPCIONISTA")
                 .requestMatchers(HttpMethod.GET, "/api/usuarios/**").hasAnyRole("ADMIN", "RECEPCIONISTA")
                 .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/canchas/**").authenticated()

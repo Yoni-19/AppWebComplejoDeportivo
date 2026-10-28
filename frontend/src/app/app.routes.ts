@@ -36,8 +36,16 @@ export const routes: Routes = [
         component: ClienteListComponent,
         canActivate: [roleGuard('ADMIN', 'RECEPCIONISTA')],
       },
-      { path: 'clientes/nueva', component: ClienteFormComponent, canActivate: [roleGuard('ADMIN')] },
-      { path: 'clientes/:id/editar', component: ClienteFormComponent, canActivate: [roleGuard('ADMIN')] },
+      {
+        path: 'clientes/nueva',
+        component: ClienteFormComponent,
+        canActivate: [roleGuard('ADMIN', 'RECEPCIONISTA')],
+      },
+      {
+        path: 'clientes/:id/editar',
+        component: ClienteFormComponent,
+        canActivate: [roleGuard('ADMIN', 'RECEPCIONISTA')],
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

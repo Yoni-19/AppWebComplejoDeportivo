@@ -15,6 +15,8 @@
             <mat-error>Los nombres son obligatorios</mat-error>
           } @else if (form.controls.nombres.hasError('minlength')) {
             <mat-error>Mínimo 2 caracteres</mat-error>
+          } @else if (form.controls.nombres.hasError('maxlength')) {
+            <mat-error>Máximo 100 caracteres</mat-error>
           }
         </mat-form-field>
 
@@ -25,6 +27,8 @@
             <mat-error>Los apellidos son obligatorios</mat-error>
           } @else if (form.controls.apellidos.hasError('minlength')) {
             <mat-error>Mínimo 2 caracteres</mat-error>
+          } @else if (form.controls.apellidos.hasError('maxlength')) {
+            <mat-error>Máximo 100 caracteres</mat-error>
           }
         </mat-form-field>
       </div>
@@ -36,6 +40,8 @@
           <mat-error>El correo es obligatorio</mat-error>
         } @else if (form.controls.correo.hasError('email')) {
           <mat-error>Ingresa un correo válido</mat-error>
+        } @else if (form.controls.correo.hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres</mat-error>
         }
       </mat-form-field>
 
@@ -46,12 +52,20 @@
           <mat-error>La contraseña es obligatoria</mat-error>
         } @else if (form.controls.clave.hasError('minlength')) {
           <mat-error>Mínimo 2 caracteres</mat-error>
+        } @else if (form.controls.clave.hasError('maxlength')) {
+          <mat-error>Máximo 100 caracteres</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Repetir contraseña</mat-label>
-        <input matInput type="password" formControlName="repetirClave" autocomplete="new-password" />
+        <input
+          matInput
+          type="password"
+          formControlName="repetirClave"
+          autocomplete="new-password"
+          [errorStateMatcher]="matcher"
+        />
         @if (form.controls.repetirClave.hasError('required')) {
           <mat-error>Repite la contraseña</mat-error>
         } @else if (form.hasError('clavesDistintas')) {

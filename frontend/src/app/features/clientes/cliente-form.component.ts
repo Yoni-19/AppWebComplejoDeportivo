@@ -1,5 +1,11 @@
-import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, computed, inject, signal } from '@angular/core';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -9,8 +15,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/http/api-error';
+import { AuthService } from '../../core/services/auth.service';
 import { PageHeader } from '../../shared/ui/page-header.component';
 import { ClienteService } from './cliente.service';
+
+/** En edición la clave es opcional: vacía significa "no cambiarla". */
+function claveOpcional(control: AbstractControl): ValidationErrors | null {
+  const valor: string = control.value ?? '';
+  if (valor === '') return null;
+  return valor.length < 2 ? { minlength: { requiredLength: 2, actualLength: valor.length } } : null;
+}
 
 @Component({
   selector: 'app-cliente-form',
@@ -25,10 +39,16 @@ export class ClienteFormComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly auth = inject(AuthService);
 
   readonly isEdit = signal(false);
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  /** El admin edita su propia cuenta desde "Mi perfil", no desde la lista de clientes. */
+  readonly esMiPerfil = computed(() => {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    return id > 0 && this.auth.sesion()?.id === id;
+  });
   private editingId: number | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -43,6 +63,9 @@ export class ClienteFormComponent {
     if (idParam) {
       this.isEdit.set(true);
       this.editingId = Number(idParam);
+      // Edición: la clave es opcional; vacía deja la actual.
+      this.form.controls.clave.setValidators([claveOpcional, Validators.maxLength(100)]);
+      this.form.controls.clave.updateValueAndValidity();
       this.service.get(this.editingId).subscribe({
         next: (cliente) => {
           if (!cliente) {
@@ -87,7 +110,7 @@ export class ClienteFormComponent {
     request$.subscribe({
       next: () => {
         this.loading.set(false);
-        this.snackBar.open('Cliente guardado.', 'Cerrar', { duration: 3000 });
+        this.snackBar.open(this.esMiPerfil() ? 'Datos guardados.' : 'Cliente guardado.', 'Cerrar', { duration: 3000 });
         this.router.navigate(['/clientes']);
       },
       error: (err) => {

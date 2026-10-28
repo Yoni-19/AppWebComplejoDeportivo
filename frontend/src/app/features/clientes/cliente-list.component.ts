@@ -29,22 +29,22 @@ export class ClienteListComponent {
   readonly loading = signal(true);
   readonly roles: Rol[] = ['ADMIN', 'RECEPCIONISTA', 'CLIENTE'];
   readonly etiquetasRol = ROL_LABEL;
-  /** El rol es editable solo por un ADMIN; el recepcionista consulta. */
+  /** El rol, el borrado y "Mi perfil" son solo para ADMIN. */
   readonly puedeGestionar = this.auth.esAdmin;
-  /** El recepcionista no ve la columna de acciones (solo lectura). */
+  /** El recepcionista puede crear y corregir clientes. */
+  readonly puedeCrear = this.auth.esStaff;
+  readonly puedeEditar = this.auth.esStaff;
+  /** El recepcionista solo ve clientes, así que la columna de rol no aporta. */
   readonly displayedColumns = computed(() =>
-    this.puedeGestionar() ? ['id', 'nombre', 'correo', 'rol', 'acciones'] : ['id', 'nombre', 'correo', 'rol'],
+    this.puedeGestionar()
+      ? ['id', 'nombre', 'correo', 'rol', 'acciones']
+      : ['id', 'nombre', 'correo', 'acciones'],
   );
   /** Guarda el id mientras se confirma el cambio de rol en el backend. */
   readonly cambiando = signal<number | null>(null);
 
   constructor() {
     this.cargar();
-  }
-
-  /** Typed label helper: table rows are untyped, so indexing the map needs a cast. */
-  rolLabel(cliente: Cliente): string {
-    return ROL_LABEL[cliente.rol ?? 'CLIENTE'];
   }
 
   private cargar(): void {
