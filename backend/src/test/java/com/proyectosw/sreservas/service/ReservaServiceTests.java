@@ -155,7 +155,7 @@ class ReservaServiceTests {
     }
 
     @Test
-    void elClienteNoPuedeCancelarUnaReservaAjena() {
+    void elClienteNoPuedeEliminarUnaReservaAjena() {
         when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
         when(repository.findById(5)).thenReturn(Optional.of(reservaDe(3)));
 
@@ -164,6 +164,88 @@ class ReservaServiceTests {
                 .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
                 .isEqualTo(HttpStatus.FORBIDDEN);
         verify(repository, never()).delete(any(Reserva.class));
+    }
+
+    @Test
+    void cancelarMarcaLaReservaYLiberaElTurnoSinBorrarNada() {
+        when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
+        Reserva reserva = reservaDe(2);
+        Cuenta cuenta = cuentaDe(new BigDecimal("75.00"));
+        reserva.setCuenta(cuenta);
+        when(repository.findById(5)).thenReturn(Optional.of(reserva));
+        when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Reserva cancelada = service.cancelar(5);
+
+        assertThat(cancelada.getEstado()).isEqualTo(EstadoServicio.CANCELADA);
+        assertThat(cancelada.getOcupacion().isActiva()).isFalse();
+        verify(cuentaService).anular(cuenta);
+        verify(repository, never()).delete(any(Reserva.class));
+        verify(ocupacionRepository, never()).delete(any(Ocupacion.class));
+    }
+
+    @Test
+    void noSePuedeCancelarUnaReservaCompletada() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.ADMIN));
+        Reserva completada = reservaDe(2);
+        completada.setEstado(EstadoServicio.COMPLETADA);
+        when(repository.findById(5)).thenReturn(Optional.of(completada));
+
+        assertThatThrownBy(() -> service.cancelar(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(cuentaService, never()).anular(any(Cuenta.class));
+    }
+
+    @Test
+    void noSePuedeCancelarUnaReservaYaCancelada() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.ADMIN));
+        Reserva cancelada = reservaDe(2);
+        cancelada.setEstado(EstadoServicio.CANCELADA);
+        when(repository.findById(5)).thenReturn(Optional.of(cancelada));
+
+        assertThatThrownBy(() -> service.cancelar(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void elClienteNoPuedeCancelarUnaReservaAjena() {
+        when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
+        when(repository.findById(5)).thenReturn(Optional.of(reservaDe(3)));
+
+        assertThatThrownBy(() -> service.cancelar(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void noSePuedeReprogramarUnaReservaCancelada() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.ADMIN));
+        Reserva cancelada = reservaDe(2);
+        cancelada.setEstado(EstadoServicio.CANCELADA);
+        when(repository.findById(5)).thenReturn(Optional.of(cancelada));
+
+        assertThatThrownBy(() -> service.actualizar(5, request(1, null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(repository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void elAdminPuedeBorrarFisicamenteUnaReservaSinPagos() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.ADMIN));
+        Reserva reserva = reservaDe(2);
+        when(repository.findById(5)).thenReturn(Optional.of(reserva));
+
+        service.eliminar(5);
+
+        verify(repository).delete(reserva);
+        verify(ocupacionRepository).delete(any(Ocupacion.class));
     }
 
     @Test

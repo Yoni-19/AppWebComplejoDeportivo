@@ -140,6 +140,16 @@ export class ReservaFormComponent {
           this.form.controls.usuarioId.disable();
           // El anticipo ya se registro al crear: no se cobra de nuevo al reprogramar.
           this.form.controls.metodoPago.disable();
+
+          // El backend rechaza reprogramar una reserva cancelada o completada.
+          if (reserva.estado === 'CANCELADA' || reserva.estado === 'COMPLETADA') {
+            this.form.disable();
+            this.errorMessage.set(
+              reserva.estado === 'CANCELADA'
+                ? 'Esta reserva está cancelada y no se puede reprogramar.'
+                : 'Esta reserva está completada y no se puede reprogramar.',
+            );
+          }
         },
         error: (err) => {
           this.errorMessage.set(apiErrorMessage(err, 'No se pudo cargar la reserva'));
@@ -185,6 +195,8 @@ export class ReservaFormComponent {
   }
 
   submit(): void {
+    if (this.form.disabled) return;
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;

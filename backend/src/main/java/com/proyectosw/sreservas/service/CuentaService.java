@@ -69,9 +69,14 @@ public class CuentaService {
         recalcularSaldo(cuenta);
     }
 
+    /**
+     * Anula la cuenta de un servicio cancelado. No se reclama nada mas, asi que
+     * el saldo queda en cero; los pagos ya registrados se conservan como historial.
+     */
     @Transactional
     public void anular(Cuenta cuenta) {
         cuenta.setEstado(EstadoCuenta.ANULADA);
+        cuenta.setSaldo(BigDecimal.ZERO);
         cuentaRepository.save(cuenta);
     }
 

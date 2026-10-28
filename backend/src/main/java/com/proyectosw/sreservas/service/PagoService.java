@@ -59,7 +59,9 @@ public class PagoService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "La reserva " + reserva.getId() + " no tiene cuenta"));
 
-        if (cuenta.getEstado() == EstadoCuenta.ANULADA) {
+        // Una cuenta anulada ya no cobra, pero el reembolso es la unica salida:
+        // devolver el anticipo de un servicio cancelado tiene que quedar registrado.
+        if (cuenta.getEstado() == EstadoCuenta.ANULADA && request.tipo() != TipoPago.REEMBOLSO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "La cuenta de la reserva esta anulada");
         }

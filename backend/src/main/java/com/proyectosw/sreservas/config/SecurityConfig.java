@@ -72,7 +72,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/canchas/**").hasRole("ADMIN")
                 // El CLIENTE solo reprograma o cancela SUS reservas: la propiedad se valida en ReservaService.
                 .requestMatchers(HttpMethod.PUT, "/api/reservas/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CLIENTE")
-                .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CLIENTE")
+                // El borrado fisico es mantenimiento: la baja de negocio es PUT /{id}/cancelar.
+                .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasRole("ADMIN")
                 .requestMatchers("/api/reservas/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CLIENTE")
                 .requestMatchers("/api/pagos/**").hasAnyRole("ADMIN", "RECEPCIONISTA")
                 .anyRequest().authenticated())

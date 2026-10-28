@@ -8,7 +8,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -246,6 +248,68 @@ class SeguridadPorRolTests {
                         .header("Authorization", "Bearer " + admin));
             }
             mockMvc.perform(delete("/api/usuarios/" + id).header("Authorization", "Bearer " + admin));
+        }
+    }
+
+    @Test
+    void cancelarLiberaElTurnoSinBorrarloYElBorradoQuedaParaElAdmin() throws Exception {
+        String cliente = tokenDe("laura@email.com", CLAVE_SEED);
+        String admin = tokenDe("admin@email.com", CLAVE_SEED);
+
+        // Horario aleatorio del ano 2027 para no chocar con el seed ni con corridas previas.
+        LocalDateTime inicio = LocalDateTime.of(2027, 1, 1, 8, 0)
+                .plusDays(ThreadLocalRandom.current().nextInt(0, 360))
+                .plusHours(ThreadLocalRandom.current().nextInt(0, 10));
+        String cuerpo = """
+                {"fechaHoraInicio":"%s","fechaHoraFin":"%s","canchaId":1,"metodoPago":"EFECTIVO"}
+                """.formatted(inicio, inicio.plusHours(1));
+
+        String primera = mockMvc.perform(post("/api/reservas")
+                        .header("Authorization", "Bearer " + cliente)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cuerpo))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int reservaId = mapper.readTree(primera).get("id").asInt();
+        int segundaId = -1;
+
+        try {
+            // Cancelar es una transicion de estado: conserva la reserva y anula la cuenta.
+            mockMvc.perform(put("/api/reservas/" + reservaId + "/cancelar")
+                            .header("Authorization", "Bearer " + cliente))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.estado").value("CANCELADA"))
+                    .andExpect(jsonPath("$.estadoCuenta").value("ANULADA"));
+
+            // El turno quedo libre: el mismo horario se puede volver a reservar.
+            String segunda = mockMvc.perform(post("/api/reservas")
+                            .header("Authorization", "Bearer " + cliente)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+            segundaId = mapper.readTree(segunda).get("id").asInt();
+
+            // Una reserva cancelada no se reprograma.
+            mockMvc.perform(put("/api/reservas/" + reservaId)
+                            .header("Authorization", "Bearer " + cliente)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo))
+                    .andExpect(status().isConflict());
+
+            // El borrado fisico ya no esta disponible para un CLIENTE.
+            mockMvc.perform(delete("/api/reservas/" + reservaId)
+                            .header("Authorization", "Bearer " + cliente))
+                    .andExpect(status().isForbidden());
+        } finally {
+            if (segundaId > 0) {
+                mockMvc.perform(delete("/api/reservas/" + segundaId)
+                        .header("Authorization", "Bearer " + admin))
+                        .andExpect(status().isNoContent());
+            }
+            mockMvc.perform(delete("/api/reservas/" + reservaId)
+                    .header("Authorization", "Bearer " + admin))
+                    .andExpect(status().isNoContent());
         }
     }
 

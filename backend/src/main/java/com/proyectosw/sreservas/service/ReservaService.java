@@ -166,6 +166,10 @@ public class ReservaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "No se puede reprogramar una reserva completada");
         }
+        if (existente.getEstado() == EstadoServicio.CANCELADA) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede reprogramar una reserva cancelada");
+        }
 
         Ocupacion ocupacion = existente.getOcupacion();
 
@@ -207,18 +211,58 @@ public class ReservaService {
         return repository.save(existente);
     }
 
+    /**
+     * Cancela una reserva confirmada. A diferencia de eliminar, conserva la
+     * reserva, el detalle y los pagos: solo libera el turno y anula la cuenta.
+     */
+    @Transactional
+    public Reserva cancelar(Integer id) {
+        Reserva existente = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No existe la reserva con id " + id));
+
+        // Un CLIENTE solo cancela sus propias reservas; el personal puede con todas.
+        verificarPropiedad(existente);
+
+        if (existente.getEstado() != EstadoServicio.CONFIRMADA) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Solo se puede cancelar una reserva confirmada");
+        }
+
+        existente.setEstado(EstadoServicio.CANCELADA);
+
+        // La ocupacion no se borra: queda inactiva para conservar el historial.
+        // El control de solapamiento solo mira las activas, asi que el turno se libera.
+        Ocupacion ocupacion = existente.getOcupacion();
+        if (ocupacion != null) {
+            ocupacion.setActiva(false);
+        }
+
+        Cuenta cuenta = existente.getCuenta();
+        if (cuenta != null) {
+            cuentaService.anular(cuenta);
+        }
+
+        return repository.save(existente);
+    }
+
+    /**
+     * Borrado fisico, reservado al ADMIN para limpiar datos cargados por error.
+     * La operacion de negocio para dar de baja un servicio es {@link #cancelar(Integer)}.
+     */
     @Transactional
     public void eliminar(Integer id) {
         Reserva existente = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No existe reserva con id " + id));
 
-        // Un CLIENTE solo cancela sus propias reservas.
+        // Defensa en profundidad: hoy solo el ADMIN llega aca, pero la regla de
+        // propiedad se mantiene por si la matriz de seguridad cambia.
         verificarPropiedad(existente);
 
         if (existente.getEstado() == EstadoServicio.COMPLETADA) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "No se puede cancelar una reserva completada");
+                    "No se puede eliminar una reserva completada");
         }
 
         // Primero los hijos (pagos, cuenta, detalle), despues la reserva y la ocupacion.

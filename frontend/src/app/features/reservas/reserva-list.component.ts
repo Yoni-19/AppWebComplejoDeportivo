@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -12,6 +13,7 @@ import { apiErrorMessage } from '../../core/http/api-error';
 import { METODOS_PAGO, MetodoPago } from '../../core/models/pago.model';
 import { Reserva } from '../../core/models/reserva.model';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { PageHeader } from '../../shared/ui/page-header.component';
 import { PagoService } from '../pagos/pago.service';
 import { ReservaService } from './reserva.service';
@@ -26,6 +28,7 @@ import { ReservaService } from './reserva.service';
 export class ReservaListComponent {
   private readonly service = inject(ReservaService);
   private readonly pagoService = inject(PagoService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   readonly auth = inject(AuthService);
 
@@ -79,16 +82,75 @@ export class ReservaListComponent {
     });
   }
 
+  /** Solo una reserva confirmada se puede dar de baja; el backend igual lo valida. */
+  puedeCancelar(reserva: Reserva): boolean {
+    return reserva.estado === 'CONFIRMADA';
+  }
+
+  /** El backend no reprograma reservas canceladas ni completadas. */
+  puedeEditar(reserva: Reserva): boolean {
+    return reserva.estado !== 'CANCELADA' && reserva.estado !== 'COMPLETADA';
+  }
+
+  /** Baja de negocio: libera el turno y conserva el historial. */
+  cancelar(reserva: Reserva): void {
+    if (reserva.id == null) return;
+    const id = reserva.id;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        data: {
+          titulo: 'Cancelar reserva',
+          mensaje:
+            'Se libera el horario para otro cliente y la cuenta queda anulada. La reserva y sus pagos se conservan como historial.',
+          confirmar: 'Cancelar reserva',
+          peligro: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) return;
+        this.service.cancelar(id).subscribe({
+          next: () => {
+            this.snackBar.open('Reserva cancelada.', 'Cerrar', { duration: 2500 });
+            this.cargar();
+          },
+          error: (err) => {
+            this.snackBar.open(apiErrorMessage(err, 'No se pudo cancelar la reserva'), 'Cerrar', { duration: 5000 });
+          },
+        });
+      });
+  }
+
+  /** Borrado fisico, solo ADMIN: se lleva pagos, cuenta y detalle. */
   eliminar(reserva: Reserva): void {
     if (reserva.id == null) return;
-    this.service.remove(reserva.id).subscribe({
-      next: () => {
-        this.reservas.update((list) => list.filter((r) => r.id !== reserva.id));
-        this.snackBar.open('Reserva eliminada.', 'Cerrar', { duration: 2500 });
-      },
-      error: (err) => {
-        this.snackBar.open(apiErrorMessage(err, 'No se pudo eliminar la reserva'), 'Cerrar', { duration: 5000 });
-      },
-    });
+    const id = reserva.id;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        data: {
+          titulo: 'Eliminar reserva',
+          mensaje:
+            'Se borran la reserva, su cuenta, sus pagos y su detalle. No se puede deshacer. Para dar de baja un servicio, cancelá la reserva.',
+          confirmar: 'Eliminar',
+          peligro: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) return;
+        this.service.remove(id).subscribe({
+          next: () => {
+            this.reservas.update((list) => list.filter((r) => r.id !== id));
+            this.snackBar.open('Reserva eliminada.', 'Cerrar', { duration: 2500 });
+          },
+          error: (err) => {
+            this.snackBar.open(apiErrorMessage(err, 'No se pudo eliminar la reserva'), 'Cerrar', { duration: 5000 });
+          },
+        });
+      });
   }
 }

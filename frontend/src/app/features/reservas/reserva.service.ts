@@ -31,6 +31,12 @@ export class ReservaService {
     return this.http.put<Reserva>(`${this.url}/${id}`, reserva);
   }
 
+  /** Transicion de negocio: conserva la reserva y libera el turno. */
+  cancelar(id: number): Observable<Reserva> {
+    return this.http.put<Reserva>(`${this.url}/${id}/cancelar`, {});
+  }
+
+  /** Borrado fisico; el backend solo lo permite a un ADMIN. */
   remove(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/${id}`);
   }

@@ -82,12 +82,21 @@
                 }
               </mat-menu>
             }
-            <a mat-icon-button [routerLink]="['/reservas', r.id, 'editar']" aria-label="Editar">
-              <mat-icon>edit</mat-icon>
-            </a>
-            <button mat-icon-button (click)="eliminar(r)" aria-label="Eliminar">
-              <mat-icon>delete</mat-icon>
-            </button>
+            @if (puedeEditar(r)) {
+              <a mat-icon-button [routerLink]="['/reservas', r.id, 'editar']" aria-label="Editar">
+                <mat-icon>edit</mat-icon>
+              </a>
+            }
+            @if (puedeCancelar(r)) {
+              <button mat-icon-button (click)="cancelar(r)" aria-label="Cancelar reserva">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            }
+            @if (auth.esAdmin()) {
+              <button mat-icon-button (click)="eliminar(r)" aria-label="Eliminar reserva">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
           </td>
         </ng-container>
       }

@@ -63,6 +63,11 @@ public class ReservaRestController {
         return ResponseEntity.ok(ReservaResponse.toResponse(service.actualizar(id, request)));
     }
 
+    @PutMapping ("/{id}/cancelar")
+    public ResponseEntity<ReservaResponse> cancelar(@PathVariable Integer id){
+        return ResponseEntity.ok(ReservaResponse.toResponse(service.cancelar(id)));
+    }
+
     @DeleteMapping ("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Integer id){
         service.eliminar(id);
