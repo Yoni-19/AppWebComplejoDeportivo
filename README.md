@@ -61,14 +61,21 @@ Las cuentas del seed usan la clave `test123`:
 | `pedro@email.com` | `CLIENTE` | Pedro Diaz |
 
 Cualquiera puede registrarse desde `/registro`: el alta siempre nace como `CLIENTE` y un
-`ADMIN` puede ascenderla desde la pantalla de clientes.
+`ADMIN` puede ascenderla desde la pantalla de clientes. Un `RECEPCIONISTA` también puede dar de
+alta y editar clientes presenciales desde la pantalla de clientes o al crear una reserva; la
+clave se entrega en mano y **no hay cambio forzado** (riesgo aceptado).
 
 ## Reglas de negocio
 
 - **Roles**: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`. El JWT solo lleva el correo y el rol se
   lee de la base en cada request, así que un cambio de rol aplica al instante.
+- **Clientes**: el `ADMIN` ve a todos menos a sí mismo; el `RECEPCIONISTA` solo ve clientes y
+  puede darlos de alta o editarlos (no al personal, ni roles, ni borrados). Nadie puede cambiar
+  su propio rol ni eliminar su cuenta.
 - **Solapamiento**: `409 Conflict` si una ocupación se superpone con otra de la misma cancha.
 - **Monto**: por hora iniciada (`ceil(minutos / 60)`), no por hora exacta.
+- **Cuenta y anticipo**: cada reserva nace con una cuenta 1:1 y el anticipo del 50 %; el saldo
+  se cobra al cerrar. El detalle de la reserva funciona como el detalle de un pedido.
 - **Contratos**: las respuestas usan DTOs; el hash BCrypt de la clave nunca sale por la API.
 - **CORS**: habilitado solo para `http://localhost:4201` y `http://127.0.0.1:4201`.
 
@@ -77,4 +84,8 @@ El detalle de los endpoints y de la matriz de permisos está en `backend/README.
 ## Estado actual
 
 Roles implementados en backend y frontend (menú, rutas, dashboard y formularios por rol).
-Pendiente: la regla del abono del 50% en el módulo de pagos.
+P1 cerrado: calendario único en `Ocupacion` y estados `EstadoServicio`.
+P2 cerrado: `Cuenta` + `DetalleReserva` + `Pago` tipado, anticipo del 50 % al reservar y cobro
+del saldo desde la lista de reservas. Alta presencial: el recepcionista registra y edita
+clientes desde la lista o desde el formulario de reserva. Pendiente: implementos (gratis, con
+cargo por pérdida), check-in/out, caja, entrenamientos, mantenimiento y diagramas.

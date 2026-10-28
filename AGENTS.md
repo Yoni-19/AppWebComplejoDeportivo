@@ -53,13 +53,27 @@ propio sigue existiendo y sigue funcionando.
 - Roles: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`. El JWT solo lleva el correo; el rol se lee de
   la base en cada request y el frontend lo obtiene de `GET /api/auth/me`.
 - El registro público (`POST /api/usuarios`) crea siempre un `CLIENTE`.
+- El `RECEPCIONISTA` también puede dar de alta y editar `CLIENTE` (registro presencial), incluso
+  desde el formulario de reserva. No puede tocar al personal, cambiar roles ni borrar cuentas.
+  La clave la entrega en mano el personal: no hay cambio forzado (riesgo aceptado).
+- En clientes, el `ADMIN` ve a todos menos a sí mismo y el `RECEPCIONISTA` solo `CLIENTE`;
+  nadie puede cambiar su propio rol ni borrar su cuenta.
 - Un `CLIENTE` solo ve, reprograma y cancela **sus** reservas (reserva ajena → `403`).
 - La cancha y el horario viven en `Ocupacion`; `Reserva` solo la referencia.
+- Cada reserva nace con una `Cuenta` 1:1 y un `DetalleReserva` tipo pedido; `montoTotal` es la
+  suma de las líneas. El anticipo del 50 % se registra al crear la reserva y el saldo se cobra
+  después con `POST /api/pagos` (solo `ADMIN` / `RECEPCIONISTA`).
+- `Pago` cuelga de la `Cuenta`, no de la reserva. Tipos: `ANTICIPO`, `SALDO`, `REEMBOLSO`.
+  Daños y pérdidas son líneas del detalle, no pagos.
 - Solapamiento de ocupaciones → `409`.
 - Monto por hora iniciada: `horas = (minutos + 59) / 60`.
 - `POST /api/usuarios` exige clave; `PUT /api/usuarios/{id}` la acepta opcional
-  (vacía = no cambiar).
-- `PUT /api/reservas/{id}` ignora el `usuarioId` y nunca acepta `estado` ni
-  `montoTotal`: los calcula el backend.
+  (vacía = no cambiar). El `RECEPCIONISTA` solo puede `PUT` sobre un `CLIENTE`.
+- Un token JWT inválido no bloquea las rutas públicas: el filtro sigue como anónimo y la
+  autorización de cada ruta decide (privadas → `401`).
+- `POST /api/reservas` exige `metodoPago` (registra el anticipo del 50 %); `PUT /api/reservas/{id}`
+  ignora `usuarioId`, `estado` y `montoTotal`, y también ignora el método de pago.
+- `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y movimientos; un `CLIENTE`
+  solo puede consultar sus propias reservas.
 
 El detalle completo está en `backend/AGENTS.md`.

@@ -41,6 +41,10 @@ La base se inicializa sola: `spring.jpa.hibernate.ddl-auto=update` crea el esque
 `src/main/resources/data.sql` inserta los datos iniciales de forma idempotente
 (`INSERT IGNORE`), así que se puede volver a correr sin duplicar nada.
 
+Si cambia una relación existente (por ejemplo, `pago.reserva_id` → `pago.cuenta_id`),
+`ddl-auto=update` no migra las filas: hay que borrar `db_complejoArquitectura` y dejar que se
+recree con el seed. En una base con datos reales, migrar a mano antes de levantar la app.
+
 ## Credenciales de prueba
 
 Las tres cuentas del seed usan la clave `test123` y sus roles salen de `data.sql`:
@@ -66,15 +70,16 @@ Todos salvo `POST /api/auth/login` y `POST /api/usuarios` (registro) exigen
 |---|---|---|
 | POST | `/api/auth/login` | Devuelve `{ token }` |
 | GET | `/api/auth/me` | Usuario autenticado con su `rol` |
-| GET/POST | `/api/usuarios` | Listar / registrar usuario (el alta nace `CLIENTE`) |
-| GET/PUT/DELETE | `/api/usuarios/{id}` | Detalle / actualizar (PUT no exige clave) / eliminar |
+| GET/POST | `/api/usuarios` | Listar / registrar usuario (el alta nace `CLIENTE`; `?rol=CLIENTE` filtra) |
+| GET/PUT/DELETE | `/api/usuarios/{id}` | Detalle / actualizar (PUT no exige clave; recepcionista solo `CLIENTE`) / eliminar (solo `ADMIN`) |
 | PUT | `/api/usuarios/{id}/rol` | Cambiar el rol (solo `ADMIN`) |
 | GET/POST | `/api/canchas` | Listar / crear cancha |
 | GET/PUT/DELETE | `/api/canchas/{id}` | Detalle / actualizar / eliminar |
-| GET/POST | `/api/reservas` | Listar / crear reserva |
+| GET/POST | `/api/reservas` | Listar / crear reserva (el alta exige `metodoPago` y cobra el anticipo) |
 | GET/PUT/DELETE | `/api/reservas/{id}` | Detalle / actualizar / eliminar |
-| GET/POST | `/api/pagos` | Listar / crear pago |
-| GET/PUT/DELETE | `/api/pagos/{id}` | Detalle / actualizar / eliminar |
+| GET | `/api/reservas/{id}/cuenta` | Cuenta de la reserva: total, saldo, estado y pagos |
+| GET/POST | `/api/pagos` | Listar / registrar movimiento (solo `ADMIN` y `RECEPCIONISTA`) |
+| GET/PUT/DELETE | `/api/pagos/{id}` | Detalle / actualizar método / eliminar |
 
 ## Roles y permisos
 
@@ -85,16 +90,23 @@ nunca viaja en el token** y un cambio de rol aplica al instante. El frontend lo 
 | Acción | ADMIN | RECEPCIONISTA | CLIENTE |
 |---|---|---|---|
 | Ver/crear/editar/eliminar canchas | sí | no | no |
-| Ver clientes | sí | sí | no |
-| Crear/editar/eliminar clientes y cambiar roles | sí | no | no |
+| Ver clientes | sí (todos menos él) | sí (solo clientes) | no |
+| Crear/editar clientes | sí | sí (solo `CLIENTE`) | no |
+| Eliminar clientes y cambiar roles | sí | no | no |
 | Ver todas las reservas | sí | sí | solo las propias |
 | Crear reserva | sí | sí | sí (a su nombre) |
 | Editar/eliminar reserva | sí | sí | solo las propias |
-| Pagos | sí | sí | no (fase 2) |
+| Registrar cobros (`/api/pagos`) | sí | sí | no |
 
 Un `CLIENTE` puede reprogramar o cancelar **sus** reservas: el `403` por reserva ajena lo aplica
 `ReservaService.verificarPropiedad`. Las reservas `COMPLETADA` no se reprograman ni se cancelan
 (`409`).
+
+En la pantalla de clientes, el `ADMIN` ve a todos los usuarios excepto a sí mismo (su cuenta se
+edita desde "Mi perfil") y el `RECEPCIONISTA` ve solo `CLIENTE`. El recepcionista puede dar de
+alta clientes presenciales y corregir sus datos, pero no al personal, ni roles, ni borrados.
+La clave se entrega en mano: **no hay cambio forzado** (riesgo aceptado). Nadie puede cambiar
+su propio rol ni eliminar su propia cuenta (`409`).
 
 Un rol sin permiso recibe `403` con el envelope JSON `{ timestamp, status, error, message }`.
 
@@ -103,6 +115,10 @@ Reglas de negocio implementadas:
 - **Solapamiento de ocupaciones**: `409 Conflict` si se superpone con otra ocupación de la
   misma cancha. Una ocupación con `activa = false` no bloquea.
 - **Monto**: se cobra por hora iniciada (`ceil` de los minutos / 60), no por hora exacta.
+- **Cuenta y anticipo**: cada reserva nace con una `Cuenta` 1:1 y un anticipo del 50 % del
+  total. El saldo queda pendiente y se cobra con `POST /api/pagos` (`tipo: SALDO`).
+- **Detalle tipo pedido**: `DetalleReserva` guarda las líneas (hoy la línea `CANCHA`) con el
+  precio del momento. `Reserva.montoTotal` es la suma de esas líneas.
 - **Contratos**: las respuestas usan DTOs (`dto/`), nunca las entidades. El hash BCrypt de
   la clave nunca sale por la API.
 - **Último administrador**: no se puede quitar el rol al último `ADMIN` (`409`).
