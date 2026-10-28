@@ -76,7 +76,8 @@ Todos salvo `POST /api/auth/login` y `POST /api/usuarios` (registro) exigen
 | GET/POST | `/api/canchas` | Listar / crear cancha |
 | GET/PUT/DELETE | `/api/canchas/{id}` | Detalle / actualizar / eliminar |
 | GET/POST | `/api/reservas` | Listar / crear reserva (el alta exige `metodoPago` y cobra el anticipo) |
-| GET/PUT/DELETE | `/api/reservas/{id}` | Detalle / actualizar / eliminar |
+| GET/PUT/DELETE | `/api/reservas/{id}` | Detalle / reprogramar / eliminar (solo `ADMIN`) |
+| PUT | `/api/reservas/{id}/cancelar` | Baja de negocio: estado `CANCELADA` y cuenta anulada |
 | GET | `/api/reservas/{id}/cuenta` | Cuenta de la reserva: total, saldo, estado y pagos |
 | GET/POST | `/api/pagos` | Listar / registrar movimiento (solo `ADMIN` y `RECEPCIONISTA`) |
 | GET/PUT/DELETE | `/api/pagos/{id}` | Detalle / actualizar método / eliminar |
@@ -99,8 +100,12 @@ nunca viaja en el token** y un cambio de rol aplica al instante. El frontend lo 
 | Registrar cobros (`/api/pagos`) | sí | sí | no |
 
 Un `CLIENTE` puede reprogramar o cancelar **sus** reservas: el `403` por reserva ajena lo aplica
-`ReservaService.verificarPropiedad`. Las reservas `COMPLETADA` no se reprograman ni se cancelan
-(`409`).
+`ReservaService.verificarPropiedad`. Solo una reserva `CONFIRMADA` se cancela; `COMPLETADA` y
+`CANCELADA` no se reprograman ni se cancelan (`409`).
+
+Cancelar conserva el historial: la ocupación queda inactiva (el turno se libera) y la cuenta
+pasa a `ANULADA` con saldo `0`. El borrado físico (`DELETE /api/reservas/{id}`) es solo para el
+`ADMIN` y se lleva pagos, cuenta y detalle.
 
 En la pantalla de clientes, el `ADMIN` ve a todos los usuarios excepto a sí mismo (su cuenta se
 edita desde "Mi perfil") y el `RECEPCIONISTA` ve solo `CLIENTE`. El recepcionista puede dar de

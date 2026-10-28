@@ -59,6 +59,9 @@ propio sigue existiendo y sigue funcionando.
 - En clientes, el `ADMIN` ve a todos menos a sí mismo y el `RECEPCIONISTA` solo `CLIENTE`;
   nadie puede cambiar su propio rol ni borrar su cuenta.
 - Un `CLIENTE` solo ve, reprograma y cancela **sus** reservas (reserva ajena → `403`).
+- Cancelar es una transición de estado (`PUT /api/reservas/{id}/cancelar`): conserva la reserva
+  y sus pagos, libera el turno y deja la cuenta `ANULADA`. El `DELETE` de reservas es solo
+  `ADMIN` y es limpieza de datos, no una baja de servicio.
 - La cancha y el horario viven en `Ocupacion`; `Reserva` solo la referencia.
 - Cada reserva nace con una `Cuenta` 1:1 y un `DetalleReserva` tipo pedido; `montoTotal` es la
   suma de las líneas. El anticipo del 50 % se registra al crear la reserva y el saldo se cobra

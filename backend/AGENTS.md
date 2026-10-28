@@ -97,10 +97,13 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
   puede abrir cualquiera, incluida la propia.
 - Matriz en `SecurityConfig`; permisos a nivel de fila (reserva ajena) en `ReservaService`.
   Un `403` pasa por `AccessDeniedHandler` (envelope JSON), no por el handler por defecto.
-- `PUT` y `DELETE /api/reservas/**` aceptan a los tres roles, pero `ReservaService.actualizar` y
-  `eliminar` llaman a `verificarPropiedad`: un `CLIENTE` solo toca sus reservas (si no, `403`).
+- `PUT /api/reservas/**` (reprogramar y cancelar) acepta a los tres roles, pero `ReservaService`
+  llama a `verificarPropiedad`: un `CLIENTE` solo toca sus reservas (si no, `403`).
   Nunca mover esa validación solo a `SecurityConfig`: ahí no se conoce el dueño de la fila.
-- Una reserva `COMPLETADA` no se reprograma ni se cancela (`409`).
+- `DELETE /api/reservas/**` es solo `ADMIN`. Es borrado físico de mantenimiento, no una operación
+  de negocio: la baja de un servicio es `PUT /api/reservas/{id}/cancelar`.
+- Una reserva `COMPLETADA` o `CANCELADA` no se reprograma (`409`). Solo una `CONFIRMADA` se
+  cancela; `EN_CURSO`, `COMPLETADA`, `CANCELADA` y `NO_ASISTIO` dan `409`.
 - Un token malformado o vencido **no corta la cadena**: `JwtAuthFilter` sigue como anónimo y la
   autorización de cada ruta decide. Las rutas públicas (`/api/auth/login`, `POST /api/usuarios`)
   funcionan igual; las privadas devuelven `401`.
@@ -124,7 +127,8 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
 ## Reglas de negocio
 
 - La cancha y el horario viven en `Ocupacion` (calendario único); `Reserva` solo la
-  referencia. Cancelar una reserva deja `Ocupacion.activa = false`.
+  referencia. Cancelar una reserva deja `Ocupacion.activa = false` **sin borrarla**: el
+  historial se conserva y el turno se libera porque el solapamiento solo mira las activas.
 - Solapamiento de ocupaciones → `409 Conflict` (`OcupacionRepository.existeSolapamiento`).
   Una ocupación inactiva no bloquea; al reprogramar se excluye la propia ocupación.
 - Monto por **hora iniciada**: `horas = (minutos + 59) / 60`. No usar `Duration.toHours()`.
@@ -137,7 +141,12 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
 - `Pago` cuelga de la cuenta, no de la reserva. Tipos: `ANTICIPO`, `SALDO`, `REEMBOLSO`.
   Los daños o pérdidas **no** son pagos: son líneas `DANIO` / `PERDIDA` del detalle.
 - Cobrar el saldo: `POST /api/pagos` con `tipo: SALDO`; el monto lo calcula el backend.
-- `DELETE /api/reservas/{id}` borra pagos, cuenta, detalle, reserva y ocupación, en ese orden.
+- Cancelar (`PUT /api/reservas/{id}/cancelar`, sin cuerpo): estado `CANCELADA`, ocupación
+  inactiva y cuenta `ANULADA` con saldo `0`. Los pagos quedan como historial; si se devuelve
+  plata, se registra un `REEMBOLSO` con `POST /api/pagos`, único movimiento que acepta una
+  cuenta `ANULADA`.
+- `DELETE /api/reservas/{id}` (solo `ADMIN`) borra pagos, cuenta, detalle, reserva y ocupación,
+  en ese orden. No tiene guard de pagos: es limpieza deliberada, no una baja de servicio.
 - `PUT /api/usuarios/{id}` acepta clave opcional (`UsuarioUpdateRequest`): si viene `null`,
   la clave no cambia. Un `RECEPCIONISTA` solo puede editar `CLIENTE`; al personal → `403`.
 - `POST /api/usuarios` exige clave (`UsuarioRequest`); `PUT` también la acepta y la re-codifica.
@@ -154,6 +163,9 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
 - `PUT /api/reservas/{id}` **ignora el `usuarioId`**: el cliente de una reserva existente no se
   puede cambiar. `estado` tampoco se puede enviar: el backend lo calcula.
 - `POST /api/reservas` exige `metodoPago` y crea el anticipo del 50 %; `PUT` lo ignora.
+- `PUT /api/reservas/{id}/cancelar` es la única baja de negocio y devuelve la reserva con
+  `estado: CANCELADA`. `DELETE /api/reservas/{id}` es solo `ADMIN`; al `RECEPCIONISTA` y al
+  `CLIENTE` les devuelve `403`.
 - `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y pagos; un `CLIENTE` solo
   puede consultar la cuenta de sus propias reservas (`403` igual que con la reserva).
 - `POST /api/pagos` es solo para `ADMIN` / `RECEPCIONISTA`. El cliente paga el anticipo al

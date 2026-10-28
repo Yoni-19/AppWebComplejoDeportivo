@@ -76,6 +76,8 @@ clave se entrega en mano y **no hay cambio forzado** (riesgo aceptado).
 - **Monto**: por hora iniciada (`ceil(minutos / 60)`), no por hora exacta.
 - **Cuenta y anticipo**: cada reserva nace con una cuenta 1:1 y el anticipo del 50 %; el saldo
   se cobra al cerrar. El detalle de la reserva funciona como el detalle de un pedido.
+- **Cancelar**: `PUT /api/reservas/{id}/cancelar` conserva la reserva y sus pagos, libera el
+  turno y deja la cuenta `ANULADA`. El `DELETE` de reservas es solo del `ADMIN`.
 - **Contratos**: las respuestas usan DTOs; el hash BCrypt de la clave nunca sale por la API.
 - **CORS**: habilitado solo para `http://localhost:4201` y `http://127.0.0.1:4201`.
 
