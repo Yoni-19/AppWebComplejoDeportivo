@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import com.proyectosw.sreservas.model.enums.EstadoPago;
 import com.proyectosw.sreservas.model.enums.MetodoPago;
+import com.proyectosw.sreservas.model.enums.TipoPago;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,33 +16,45 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * Movimiento de plata de una cuenta (anticipo, saldo o reembolso).
+ *
+ * El monto no lo elige el cliente: lo calcula la capa de servicio a partir
+ * de la cuenta. Los cargos por cancha o perdidas no son pagos: viven en
+ * {@link DetalleReserva}.
+ */
 @Entity
 public class Pago {
     @Id @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Integer id;
-    
+
     @Column (nullable = false)
     private BigDecimal monto;
-    
+
+    @NotNull (message = "El tipo de pago es obligatorio")
+    @Enumerated (EnumType.STRING)
+    @Column (nullable = false, length = 20)
+    private TipoPago tipo;
+
     @NotNull (message = "El método de pago es obligatorio")
     @Column (nullable = false)
     @Enumerated(EnumType.STRING)
     private MetodoPago metodoPago;
-    
+
     @Column (nullable = false)
     @Enumerated(EnumType.STRING)
     private EstadoPago estadoPago;
-    
+
     @Column (nullable = false)
     private LocalDateTime fechaPago;
-    
-    @NotNull (message = "El pago debe referenciar una reserva")
-    @OneToOne (fetch = FetchType.LAZY)
-    @JoinColumn (name = "reserva_id", unique = true, nullable = false)
-    private Reserva reserva;
+
+    @NotNull (message = "El pago debe referenciar una cuenta")
+    @ManyToOne (fetch = FetchType.LAZY, optional = false)
+    @JoinColumn (name = "cuenta_id", nullable = false)
+    private Cuenta cuenta;
 
     public Pago() {
     }
@@ -60,6 +73,14 @@ public class Pago {
 
     public void setMonto(BigDecimal monto) {
         this.monto = monto;
+    }
+
+    public TipoPago getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoPago tipo) {
+        this.tipo = tipo;
     }
 
     public MetodoPago getMetodoPago() {
@@ -86,12 +107,11 @@ public class Pago {
         this.fechaPago = fechaPago;
     }
 
-    public Reserva getReserva() {
-        return reserva;
+    public Cuenta getCuenta() {
+        return cuenta;
     }
 
-    public void setReserva(Reserva reserva) {
-        this.reserva = reserva;
+    public void setCuenta(Cuenta cuenta) {
+        this.cuenta = cuenta;
     }
-
 }

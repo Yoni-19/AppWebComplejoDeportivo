@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.proyectosw.sreservas.dto.CuentaResponse;
 import com.proyectosw.sreservas.dto.ReservaRequest;
 import com.proyectosw.sreservas.dto.ReservaResponse;
 import com.proyectosw.sreservas.service.ReservaService;
@@ -44,6 +45,11 @@ public class ReservaRestController {
                 .map(ResponseEntity::ok)
                 .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe la reserva con id " + id));
+    }
+
+    @GetMapping ("/{id}/cuenta")
+    public ResponseEntity<CuentaResponse> cuenta(@PathVariable Integer id){
+        return ResponseEntity.ok(CuentaResponse.toResponse(service.buscarCuenta(id)));
     }
 
     @PostMapping

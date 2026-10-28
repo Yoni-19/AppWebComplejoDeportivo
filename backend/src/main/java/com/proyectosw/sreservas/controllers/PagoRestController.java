@@ -46,14 +46,14 @@ public class PagoRestController {
 
     @PostMapping
     public ResponseEntity<PagoResponse> crear(@Valid @RequestBody PagoRequest request) {
-        PagoResponse nuevo = PagoResponse.toResponse(service.crear(request.toEntity()));
+        PagoResponse nuevo = PagoResponse.toResponse(service.crear(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PagoResponse> actualizar(@PathVariable Integer id,
                                                    @Valid @RequestBody PagoRequest request) {
-        return ResponseEntity.ok(PagoResponse.toResponse(service.actualizar(id, request.toEntity())));
+        return ResponseEntity.ok(PagoResponse.toResponse(service.actualizar(id, request)));
     }
 
     @DeleteMapping("/{id}")

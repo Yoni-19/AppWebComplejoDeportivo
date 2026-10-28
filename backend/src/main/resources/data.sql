@@ -29,7 +29,27 @@ INSERT IGNORE INTO reserva (id, estado, monto_total, usuario_id, ocupacion_id) V
   (4, 'COMPLETADA', 180.00, 3, 4),
   (5, 'CANCELADA', 70.00, 1, 5);
 
-INSERT IGNORE INTO pago (id, monto, metodo_pago, estado_pago, fecha_pago, reserva_id) VALUES
-  (4, 140.00, 'EFECTIVO', 'PAGADO', '2026-11-02 17:30:00', 1),
-  (5, 90.00, 'TRANSFERENCIA', 'PENDIENTE', '2026-11-04 19:15:00', 3),
-  (6, 180.00, 'TARJETA', 'PAGADO', '2026-11-05 20:30:00', 4);
+-- Detalle tipo pedido: una linea CANCHA por reserva, con el precio del momento.
+-- 2 horas a 70.00 = 140.00; 1.5 horas se cobran como 2 horas iniciadas.
+INSERT IGNORE INTO detalle_reserva (id, reserva_id, tipo, descripcion, cantidad, precio_unitario, subtotal) VALUES
+  (1, 1, 'CANCHA', 'Cancha Futbol 1', 2, 70.00, 140.00),
+  (2, 2, 'CANCHA', 'Cancha Futbol 1', 2, 70.00, 140.00),
+  (3, 3, 'CANCHA', 'Cancha Tenis 1', 1, 90.00, 90.00),
+  (4, 4, 'CANCHA', 'Cancha Tenis 1', 2, 90.00, 180.00),
+  (5, 5, 'CANCHA', 'Cancha Futbol 1', 1, 70.00, 70.00);
+
+-- La cuenta es la cabecera contable: total, saldo pendiente y estado.
+INSERT IGNORE INTO cuenta (id, reserva_id, total, saldo, estado) VALUES
+  (1, 1, 140.00, 70.00, 'ABIERTA'),
+  (2, 2, 140.00, 70.00, 'ABIERTA'),
+  (3, 3, 90.00, 45.00, 'ABIERTA'),
+  (4, 4, 180.00, 0.00, 'CERRADA'),
+  (5, 5, 70.00, 0.00, 'ANULADA');
+
+-- Movimientos: el anticipo es el 50% del total; el saldo cierra la cuenta.
+INSERT IGNORE INTO pago (id, monto, tipo, metodo_pago, estado_pago, fecha_pago, cuenta_id) VALUES
+  (1, 70.00, 'ANTICIPO', 'EFECTIVO', 'PAGADO', '2026-10-27 10:00:00', 1),
+  (2, 70.00, 'ANTICIPO', 'TRANSFERENCIA', 'PAGADO', '2026-10-27 11:00:00', 2),
+  (3, 45.00, 'ANTICIPO', 'TARJETA', 'PAGADO', '2026-10-27 12:00:00', 3),
+  (4, 90.00, 'ANTICIPO', 'TARJETA', 'PAGADO', '2026-11-04 18:05:00', 4),
+  (5, 90.00, 'SALDO', 'EFECTIVO', 'PAGADO', '2026-11-05 20:10:00', 4);

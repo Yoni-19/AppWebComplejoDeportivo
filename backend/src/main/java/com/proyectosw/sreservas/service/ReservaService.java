@@ -11,15 +11,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.proyectosw.sreservas.dto.ReservaRequest;
+import com.proyectosw.sreservas.factory.PagoFactory;
 import com.proyectosw.sreservas.model.Cancha;
+import com.proyectosw.sreservas.model.Cuenta;
+import com.proyectosw.sreservas.model.DetalleReserva;
 import com.proyectosw.sreservas.model.Ocupacion;
+import com.proyectosw.sreservas.model.Pago;
 import com.proyectosw.sreservas.model.Reserva;
 import com.proyectosw.sreservas.model.Usuario;
 import com.proyectosw.sreservas.model.enums.EstadoServicio;
 import com.proyectosw.sreservas.model.enums.Rol;
+import com.proyectosw.sreservas.model.enums.TipoDetalle;
 import com.proyectosw.sreservas.model.enums.TipoOcupacion;
 import com.proyectosw.sreservas.repository.CanchaRepository;
+import com.proyectosw.sreservas.repository.CuentaRepository;
+import com.proyectosw.sreservas.repository.DetalleReservaRepository;
 import com.proyectosw.sreservas.repository.OcupacionRepository;
+import com.proyectosw.sreservas.repository.PagoRepository;
 import com.proyectosw.sreservas.repository.ReservaRepository;
 import com.proyectosw.sreservas.repository.UsuarioRepository;
 
@@ -32,15 +40,25 @@ public class ReservaService {
     private final CanchaRepository canchaRepository;
     private final UsuarioRepository usuarioRepository;
     private final CurrentUserService currentUser;
+    private final DetalleReservaRepository detalleRepository;
+    private final CuentaRepository cuentaRepository;
+    private final PagoRepository pagoRepository;
+    private final CuentaService cuentaService;
 
     public ReservaService(final ReservaRepository repository, final OcupacionRepository ocupacionRepository,
             final CanchaRepository canchaRepository, final UsuarioRepository usuarioRepository,
-            final CurrentUserService currentUser) {
+            final CurrentUserService currentUser, final DetalleReservaRepository detalleRepository,
+            final CuentaRepository cuentaRepository, final PagoRepository pagoRepository,
+            final CuentaService cuentaService) {
         this.repository = repository;
         this.ocupacionRepository = ocupacionRepository;
         this.canchaRepository = canchaRepository;
         this.usuarioRepository = usuarioRepository;
         this.currentUser = currentUser;
+        this.detalleRepository = detalleRepository;
+        this.cuentaRepository = cuentaRepository;
+        this.pagoRepository = pagoRepository;
+        this.cuentaService = cuentaService;
     }
 
     /** ADMIN y RECEPCIONISTA ven todas las reservas; CLIENTE solo las propias. */
@@ -58,8 +76,27 @@ public class ReservaService {
         return reserva;
     }
 
+    /** Cuenta de una reserva, con la misma regla de propiedad que la reserva. */
+    public Cuenta buscarCuenta(Integer reservaId) {
+        Reserva reserva = repository.findById(reservaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No existe la reserva con id " + reservaId));
+        verificarPropiedad(reserva);
+        Cuenta cuenta = reserva.getCuenta();
+        if (cuenta == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "La reserva " + reservaId + " no tiene cuenta");
+        }
+        return cuenta;
+    }
+
     @Transactional
     public Reserva crear(ReservaRequest request) {
+        if (request.metodoPago() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El método de pago del anticipo es obligatorio");
+        }
+
         Cancha cancha = canchaRepository.findById(request.canchaId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No existe la cancha con id " + request.canchaId()));
@@ -100,9 +137,20 @@ public class ReservaService {
         reserva.setOcupacion(ocupacion);
         reserva.setUsuario(usuario);
         reserva.setEstado(EstadoServicio.CONFIRMADA);
-        recalcularMonto(reserva);
+        reserva.setMontoTotal(calcularMonto(cancha, request.fechaHoraInicio(), request.fechaHoraFin()));
+        reserva = repository.save(reserva);
 
-        return repository.save(reserva);
+        DetalleReserva linea = lineaCancha(reserva, cancha, request.fechaHoraInicio(), request.fechaHoraFin());
+        detalleRepository.save(linea);
+        reserva.getDetalles().add(linea);
+
+        Cuenta cuenta = cuentaService.crear(reserva, reserva.getMontoTotal());
+        reserva.setCuenta(cuenta);
+
+        Pago anticipo = PagoFactory.anticipo(cuenta, request.metodoPago());
+        cuentaService.registrarPago(cuenta, anticipo);
+
+        return reserva;
     }
 
     @Transactional
@@ -146,7 +194,15 @@ public class ReservaService {
         ocupacion.setCancha(cancha);
         ocupacion.setFechaHoraInicio(inicio);
         ocupacion.setFechaHoraFin(fin);
-        recalcularMonto(existente);
+
+        BigDecimal monto = calcularMonto(cancha, inicio, fin);
+        existente.setMontoTotal(monto);
+        actualizarLineaCancha(existente, cancha, inicio, fin);
+
+        Cuenta cuenta = existente.getCuenta();
+        if (cuenta != null) {
+            cuentaService.recalcularTotal(cuenta, monto);
+        }
 
         return repository.save(existente);
     }
@@ -165,7 +221,18 @@ public class ReservaService {
                     "No se puede cancelar una reserva completada");
         }
 
-        // El FK vive en reserva (ocupacion_id): se borra primero la reserva.
+        // Primero los hijos (pagos, cuenta, detalle), despues la reserva y la ocupacion.
+        // Hay que cortar la referencia inversa antes de borrar la cuenta: si no,
+        // Hibernate intenta persistir una cuenta ya eliminada al hacer flush.
+        Cuenta cuenta = existente.getCuenta();
+        existente.setCuenta(null);
+        existente.getDetalles().clear();
+        if (cuenta != null) {
+            pagoRepository.deleteByCuenta_Id(cuenta.getId());
+            cuentaRepository.delete(cuenta);
+        }
+        detalleRepository.deleteByReserva_Id(existente.getId());
+
         Ocupacion ocupacion = existente.getOcupacion();
         repository.delete(existente);
         repository.flush();
@@ -191,13 +258,47 @@ public class ReservaService {
         }
     }
 
-    private void recalcularMonto(Reserva reserva) {
-        Ocupacion ocupacion = reserva.getOcupacion();
-        BigDecimal precioHora = ocupacion.getCancha().getPrecioPorHora();
-        long minutos = Duration.between(
-                ocupacion.getFechaHoraInicio(),
-                ocupacion.getFechaHoraFin()).toMinutes();
-        long horas = (minutos + 59) / 60;
-        reserva.setMontoTotal(precioHora.multiply(BigDecimal.valueOf(horas)));
+    private DetalleReserva lineaCancha(Reserva reserva, Cancha cancha,
+                                       LocalDateTime inicio, LocalDateTime fin) {
+        DetalleReserva linea = new DetalleReserva();
+        linea.setReserva(reserva);
+        linea.setTipo(TipoDetalle.CANCHA);
+        aplicarDatosCancha(linea, cancha, inicio, fin);
+        return linea;
+    }
+
+    private void actualizarLineaCancha(Reserva reserva, Cancha cancha,
+                                       LocalDateTime inicio, LocalDateTime fin) {
+        DetalleReserva linea = detalleRepository
+                .findFirstByReserva_IdAndTipo(reserva.getId(), TipoDetalle.CANCHA)
+                .orElseGet(() -> {
+                    DetalleReserva nueva = new DetalleReserva();
+                    nueva.setReserva(reserva);
+                    nueva.setTipo(TipoDetalle.CANCHA);
+                    reserva.getDetalles().add(nueva);
+                    return nueva;
+                });
+        aplicarDatosCancha(linea, cancha, inicio, fin);
+        detalleRepository.save(linea);
+    }
+
+    private void aplicarDatosCancha(DetalleReserva linea, Cancha cancha,
+                                    LocalDateTime inicio, LocalDateTime fin) {
+        long horas = horasIniciadas(inicio, fin);
+        linea.setDescripcion(cancha.getNombre());
+        linea.setCantidad((int) horas);
+        linea.setPrecioUnitario(cancha.getPrecioPorHora());
+        linea.setSubtotal(cancha.getPrecioPorHora().multiply(BigDecimal.valueOf(horas)));
+    }
+
+    private BigDecimal calcularMonto(Cancha cancha, LocalDateTime inicio, LocalDateTime fin) {
+        return cancha.getPrecioPorHora()
+                .multiply(BigDecimal.valueOf(horasIniciadas(inicio, fin)));
+    }
+
+    /** Monto por hora iniciada: 90 minutos son 2 horas. */
+    private long horasIniciadas(LocalDateTime inicio, LocalDateTime fin) {
+        long minutos = Duration.between(inicio, fin).toMinutes();
+        return (minutos + 59) / 60;
     }
 }

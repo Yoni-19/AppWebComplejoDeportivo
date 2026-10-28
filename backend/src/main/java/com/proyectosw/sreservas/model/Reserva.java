@@ -1,6 +1,8 @@
 package com.proyectosw.sreservas.model;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.proyectosw.sreservas.model.enums.EstadoServicio;
 
@@ -14,7 +16,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -44,6 +48,13 @@ public class Reserva {
 
     @Column (nullable = false)
     private BigDecimal montoTotal;
+
+    @OneToOne (mappedBy = "reserva", fetch = FetchType.LAZY)
+    private Cuenta cuenta;
+
+    @OneToMany (mappedBy = "reserva", fetch = FetchType.LAZY)
+    @OrderBy ("id ASC")
+    private List<DetalleReserva> detalles = new ArrayList<>();
 
     public Reserva() {
     }
@@ -86,5 +97,21 @@ public class Reserva {
 
     public void setMontoTotal(BigDecimal montoTotal) {
         this.montoTotal = montoTotal;
+    }
+
+    public Cuenta getCuenta() {
+        return cuenta;
+    }
+
+    public void setCuenta(Cuenta cuenta) {
+        this.cuenta = cuenta;
+    }
+
+    public List<DetalleReserva> getDetalles() {
+        return detalles;
+    }
+
+    public void setDetalles(List<DetalleReserva> detalles) {
+        this.detalles = detalles;
     }
 }

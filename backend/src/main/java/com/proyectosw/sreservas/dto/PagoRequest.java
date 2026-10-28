@@ -1,31 +1,28 @@
 package com.proyectosw.sreservas.dto;
 
-import com.proyectosw.sreservas.model.Pago;
-import com.proyectosw.sreservas.model.Reserva;
+import java.math.BigDecimal;
+
 import com.proyectosw.sreservas.model.enums.MetodoPago;
+import com.proyectosw.sreservas.model.enums.TipoPago;
 
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Create/update payload for a payment. References the reservation by id;
- * {@code monto}, {@code estadoPago} and {@code fechaPago} are managed
- * by the service and therefore excluded.
+ * Alta de un movimiento sobre la cuenta de una reserva.
+ *
+ * {@code monto} solo se usa en REEMBOLSO: en ANTICIPO y SALDO lo calcula el
+ * backend para que el cliente no pueda inflar ni reducir lo que debe.
  */
 public record PagoRequest(
+        @NotNull(message = "El tipo de pago es obligatorio")
+        TipoPago tipo,
+
         @NotNull(message = "El método de pago es obligatorio")
         MetodoPago metodoPago,
 
         @NotNull(message = "El pago debe referenciar una reserva")
-        Integer reservaId
+        Integer reservaId,
+
+        BigDecimal monto
 ) {
-    public Pago toEntity() {
-        Pago pago = new Pago();
-        pago.setMetodoPago(metodoPago);
-
-        Reserva reserva = new Reserva();
-        reserva.setId(reservaId);
-        pago.setReserva(reserva);
-
-        return pago;
-    }
 }

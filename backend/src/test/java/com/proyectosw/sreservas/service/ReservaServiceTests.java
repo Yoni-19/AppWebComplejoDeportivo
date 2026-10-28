@@ -23,14 +23,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.proyectosw.sreservas.dto.ReservaRequest;
 import com.proyectosw.sreservas.model.Cancha;
+import com.proyectosw.sreservas.model.Cuenta;
 import com.proyectosw.sreservas.model.Ocupacion;
 import com.proyectosw.sreservas.model.Reserva;
 import com.proyectosw.sreservas.model.Usuario;
+import com.proyectosw.sreservas.model.enums.EstadoCuenta;
 import com.proyectosw.sreservas.model.enums.EstadoServicio;
+import com.proyectosw.sreservas.model.enums.MetodoPago;
 import com.proyectosw.sreservas.model.enums.Rol;
 import com.proyectosw.sreservas.model.enums.TipoOcupacion;
 import com.proyectosw.sreservas.repository.CanchaRepository;
+import com.proyectosw.sreservas.repository.CuentaRepository;
+import com.proyectosw.sreservas.repository.DetalleReservaRepository;
 import com.proyectosw.sreservas.repository.OcupacionRepository;
+import com.proyectosw.sreservas.repository.PagoRepository;
 import com.proyectosw.sreservas.repository.ReservaRepository;
 import com.proyectosw.sreservas.repository.UsuarioRepository;
 
@@ -47,6 +53,14 @@ class ReservaServiceTests {
     private UsuarioRepository usuarioRepository;
     @Mock
     private CurrentUserService currentUser;
+    @Mock
+    private DetalleReservaRepository detalleRepository;
+    @Mock
+    private CuentaRepository cuentaRepository;
+    @Mock
+    private PagoRepository pagoRepository;
+    @Mock
+    private CuentaService cuentaService;
 
     @InjectMocks
     private ReservaService service;
@@ -87,6 +101,8 @@ class ReservaServiceTests {
         when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
         when(canchaRepository.findById(1)).thenReturn(Optional.of(canchaActiva()));
         when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(cuentaService.crear(any(Reserva.class), any(BigDecimal.class)))
+                .thenAnswer(inv -> cuentaDe(inv.getArgument(1)));
 
         Reserva creada = service.crear(request(1, 3));
 
@@ -95,6 +111,19 @@ class ReservaServiceTests {
         assertThat(creada.getMontoTotal()).isEqualByComparingTo("150.00");
         assertThat(creada.getOcupacion().getTipo()).isEqualTo(TipoOcupacion.RESERVA);
         assertThat(creada.getOcupacion().isActiva()).isTrue();
+        assertThat(creada.getDetalles()).hasSize(1);
+        assertThat(creada.getDetalles().get(0).getCantidad()).isEqualTo(2);
+        assertThat(creada.getCuenta()).isNotNull();
+        verify(cuentaService).registrarPago(any(Cuenta.class), any());
+    }
+
+    @Test
+    void laReservaSinMetodoDePagoDelAnticipoFalla() {
+        assertThatThrownBy(() -> service.crear(requestSinMetodo(1)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(repository, never()).save(any(Reserva.class));
     }
 
     @Test
@@ -102,12 +131,15 @@ class ReservaServiceTests {
         when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
         when(repository.findById(5)).thenReturn(Optional.of(reservaDe(2)));
         when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(detalleRepository.findFirstByReserva_IdAndTipo(anyInt(), any()))
+                .thenReturn(Optional.empty());
 
         Reserva reprogramada = service.actualizar(5, request(1, null));
 
         assertThat(reprogramada.getOcupacion().getFechaHoraInicio())
                 .isEqualTo(LocalDateTime.of(2026, 12, 1, 10, 0));
         assertThat(reprogramada.getMontoTotal()).isEqualByComparingTo("150.00");
+        assertThat(reprogramada.getDetalles()).hasSize(1);
     }
 
     @Test
@@ -174,12 +206,31 @@ class ReservaServiceTests {
         return reserva;
     }
 
+    private Cuenta cuentaDe(BigDecimal total) {
+        Cuenta cuenta = new Cuenta();
+        cuenta.setId(1);
+        cuenta.setTotal(total);
+        cuenta.setSaldo(total);
+        cuenta.setEstado(EstadoCuenta.ABIERTA);
+        return cuenta;
+    }
+
     private ReservaRequest request(Integer canchaId, Integer usuarioId) {
         return new ReservaRequest(
                 LocalDateTime.of(2026, 12, 1, 10, 0),
                 LocalDateTime.of(2026, 12, 1, 11, 30),
                 canchaId,
-                usuarioId);
+                usuarioId,
+                MetodoPago.EFECTIVO);
+    }
+
+    private ReservaRequest requestSinMetodo(Integer canchaId) {
+        return new ReservaRequest(
+                LocalDateTime.of(2026, 12, 1, 10, 0),
+                LocalDateTime.of(2026, 12, 1, 11, 30),
+                canchaId,
+                null,
+                null);
     }
 
     private Cancha canchaActiva() {

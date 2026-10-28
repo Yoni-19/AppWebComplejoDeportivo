@@ -2,6 +2,8 @@ package com.proyectosw.sreservas.dto;
 
 import java.time.LocalDateTime;
 
+import com.proyectosw.sreservas.model.enums.MetodoPago;
+
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -11,6 +13,9 @@ import jakarta.validation.constraints.NotNull;
  *
  * {@code usuarioId} is optional in the payload: a CLIENTE books for itself and the
  * service overwrites whatever id arrives, while ADMIN and RECEPCIONISTA must send it.
+ *
+ * {@code metodoPago} is only used when creating: the service registers the 50% deposit
+ * with that method. On update it is ignored, so the field stays optional.
  */
 public record ReservaRequest(
         @NotNull(message = "La fecha y hora de inicio es obligatoria")
@@ -22,6 +27,8 @@ public record ReservaRequest(
         @NotNull(message = "La reserva debe indicar una cancha")
         Integer canchaId,
 
-        Integer usuarioId
+        Integer usuarioId,
+
+        MetodoPago metodoPago
 ) {
 }
