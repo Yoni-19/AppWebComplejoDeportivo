@@ -61,8 +61,14 @@ public class ReservaService {
         this.cuentaService = cuentaService;
     }
 
-    /** ADMIN y RECEPCIONISTA ven todas las reservas; CLIENTE solo las propias. */
+    /**
+     * ADMIN y RECEPCIONISTA ven todas las reservas; CLIENTE solo las propias.
+     * Antes de listar se vencen los turnos que terminaron sin check-in.
+     */
+    @Transactional
     public List<Reserva> listarTodos(){
+        expirarTurnosSinCheckIn();
+
         Usuario actual = currentUser.get();
         if (Rol.CLIENTE.equals(actual.getRol())) {
             return repository.findByUsuario_Id(actual.getId());
@@ -162,9 +168,10 @@ public class ReservaService {
         // Un CLIENTE solo reprograma sus propias reservas; el personal puede con todas.
         verificarPropiedad(existente);
 
-        if (existente.getEstado() == EstadoServicio.COMPLETADA) {
+        if (existente.getEstado() == EstadoServicio.COMPLETADA
+                || existente.getEstado() == EstadoServicio.EN_CURSO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "No se puede reprogramar una reserva completada");
+                    "No se puede reprogramar una reserva ya iniciada");
         }
         if (existente.getEstado() == EstadoServicio.CANCELADA) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -247,6 +254,56 @@ public class ReservaService {
     }
 
     /**
+     * Check-in del turno: pasa la reserva a EN_CURSO. Lo registra el personal, no
+     * el cliente, y solo desde una hora antes del inicio y hasta el fin del turno.
+     */
+    @Transactional
+    public Reserva registrarCheckIn(Integer id) {
+        verificarPersonal();
+
+        Reserva existente = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No existe la reserva con id " + id));
+
+        if (existente.getEstado() != EstadoServicio.CONFIRMADA) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Solo se puede hacer check-in de una reserva confirmada");
+        }
+
+        Ocupacion ocupacion = existente.getOcupacion();
+        LocalDateTime ahora = LocalDateTime.now();
+        if (ahora.isBefore(ocupacion.getFechaHoraInicio().minusHours(1))
+                || ahora.isAfter(ocupacion.getFechaHoraFin())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El check-in se registra desde una hora antes del turno y hasta su fin");
+        }
+
+        existente.setEstado(EstadoServicio.EN_CURSO);
+        return repository.save(existente);
+    }
+
+    /**
+     * Check-out del turno: cierra el servicio como COMPLETADA. El cobro del saldo
+     * es un paso aparte ({@code POST /api/pagos}): la cancha y la caja no se mezclan.
+     */
+    @Transactional
+    public Reserva registrarCheckOut(Integer id) {
+        verificarPersonal();
+
+        Reserva existente = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No existe la reserva con id " + id));
+
+        if (existente.getEstado() != EstadoServicio.EN_CURSO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Solo se puede hacer check-out de una reserva en curso");
+        }
+
+        existente.setEstado(EstadoServicio.COMPLETADA);
+        return repository.save(existente);
+    }
+
+    /**
      * Borrado fisico, reservado al ADMIN para limpiar datos cargados por error.
      * La operacion de negocio para dar de baja un servicio es {@link #cancelar(Integer)}.
      */
@@ -281,6 +338,30 @@ public class ReservaService {
         repository.delete(existente);
         repository.flush();
         ocupacionRepository.delete(ocupacion);
+    }
+
+    /** El check-in y el check-out los registra el personal en la recepcion. */
+    private void verificarPersonal() {
+        Usuario actual = currentUser.get();
+        if (Rol.CLIENTE.equals(actual.getRol())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo el personal puede registrar el check-in y el check-out");
+        }
+    }
+
+    /**
+     * Pasa a NO_ASISTIO los turnos confirmados cuyo horario ya termino. La
+     * ocupacion queda inactiva, igual que al cancelar: el turno no se uso.
+     */
+    private void expirarTurnosSinCheckIn() {
+        LocalDateTime ahora = LocalDateTime.now();
+        for (Reserva reserva : repository.findByEstado(EstadoServicio.CONFIRMADA)) {
+            Ocupacion ocupacion = reserva.getOcupacion();
+            if (ocupacion != null && ocupacion.getFechaHoraFin().isBefore(ahora)) {
+                reserva.setEstado(EstadoServicio.NO_ASISTIO);
+                ocupacion.setActiva(false);
+            }
+        }
     }
 
     /** Un cliente no puede ver reservas ajenas; el personal si. */

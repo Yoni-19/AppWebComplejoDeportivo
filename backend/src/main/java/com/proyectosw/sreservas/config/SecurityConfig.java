@@ -70,6 +70,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/canchas/**").authenticated()
                 .requestMatchers("/api/canchas/**").hasRole("ADMIN")
+                // Check-in y check-out son operaciones de recepcion: el cliente no los registra.
+                .requestMatchers(HttpMethod.PUT, "/api/reservas/*/check-in", "/api/reservas/*/check-out")
+                        .hasAnyRole("ADMIN", "RECEPCIONISTA")
                 // El CLIENTE solo reprograma o cancela SUS reservas: la propiedad se valida en ReservaService.
                 .requestMatchers(HttpMethod.PUT, "/api/reservas/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CLIENTE")
                 // El borrado fisico es mantenimiento: la baja de negocio es PUT /{id}/cancelar.

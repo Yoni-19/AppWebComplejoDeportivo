@@ -82,6 +82,16 @@
                 }
               </mat-menu>
             }
+            @if (puedeCheckIn(r)) {
+              <button mat-icon-button (click)="checkIn(r)" aria-label="Registrar check-in">
+                <mat-icon>login</mat-icon>
+              </button>
+            }
+            @if (puedeCheckOut(r)) {
+              <button mat-icon-button (click)="checkOut(r)" aria-label="Registrar check-out">
+                <mat-icon>logout</mat-icon>
+              </button>
+            }
             @if (puedeEditar(r)) {
               <a mat-icon-button [routerLink]="['/reservas', r.id, 'editar']" aria-label="Editar">
                 <mat-icon>edit</mat-icon>

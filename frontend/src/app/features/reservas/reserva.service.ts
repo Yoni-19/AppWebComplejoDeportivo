@@ -36,6 +36,16 @@ export class ReservaService {
     return this.http.put<Reserva>(`${this.url}/${id}/cancelar`, {});
   }
 
+  /** Recepcion: arranca el turno. */
+  checkIn(id: number): Observable<Reserva> {
+    return this.http.put<Reserva>(`${this.url}/${id}/check-in`, {});
+  }
+
+  /** Recepcion: cierra el turno como COMPLETADA. El saldo se cobra aparte. */
+  checkOut(id: number): Observable<Reserva> {
+    return this.http.put<Reserva>(`${this.url}/${id}/check-out`, {});
+  }
+
   /** Borrado fisico; el backend solo lo permite a un ADMIN. */
   remove(id: number): Observable<void> {
     return this.http.delete<void>(`${this.url}/${id}`);

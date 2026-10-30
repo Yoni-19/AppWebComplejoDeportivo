@@ -5,7 +5,7 @@ package com.proyectosw.sreservas.model.enums;
  *
  * CONFIRMADA: creado con el anticipo del 50% pagado.
  * EN_CURSO: el recepcionista registro el check-in.
- * COMPLETADA: se hizo el check-out y se cobro el saldo.
+ * COMPLETADA: se hizo el check-out; el saldo puede quedar pendiente en la cuenta.
  * CANCELADA: se cancelo antes de empezar.
  * NO_ASISTIO: vencio el horario sin check-in.
  */

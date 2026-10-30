@@ -68,6 +68,16 @@ public class ReservaRestController {
         return ResponseEntity.ok(ReservaResponse.toResponse(service.cancelar(id)));
     }
 
+    @PutMapping ("/{id}/check-in")
+    public ResponseEntity<ReservaResponse> checkIn(@PathVariable Integer id){
+        return ResponseEntity.ok(ReservaResponse.toResponse(service.registrarCheckIn(id)));
+    }
+
+    @PutMapping ("/{id}/check-out")
+    public ResponseEntity<ReservaResponse> checkOut(@PathVariable Integer id){
+        return ResponseEntity.ok(ReservaResponse.toResponse(service.registrarCheckOut(id)));
+    }
+
     @DeleteMapping ("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Integer id){
         service.eliminar(id);

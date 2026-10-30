@@ -87,9 +87,61 @@ export class ReservaListComponent {
     return reserva.estado === 'CONFIRMADA';
   }
 
-  /** El backend no reprograma reservas canceladas ni completadas. */
+  /** El check-in y el check-out los registra el personal, nunca el cliente. */
+  puedeCheckIn(reserva: Reserva): boolean {
+    return this.auth.esStaff() && reserva.estado === 'CONFIRMADA';
+  }
+
+  puedeCheckOut(reserva: Reserva): boolean {
+    return this.auth.esStaff() && reserva.estado === 'EN_CURSO';
+  }
+
+  /** El backend no reprograma reservas canceladas, en curso ni completadas. */
   puedeEditar(reserva: Reserva): boolean {
-    return reserva.estado !== 'CANCELADA' && reserva.estado !== 'COMPLETADA';
+    return reserva.estado !== 'CANCELADA' && reserva.estado !== 'COMPLETADA' && reserva.estado !== 'EN_CURSO';
+  }
+
+  /** La ventana de check-in la valida el backend; aca solo se avisa el error. */
+  checkIn(reserva: Reserva): void {
+    if (reserva.id == null) return;
+    this.service.checkIn(reserva.id).subscribe({
+      next: () => {
+        this.snackBar.open('Check-in registrado.', 'Cerrar', { duration: 2500 });
+        this.cargar();
+      },
+      error: (err) => {
+        this.snackBar.open(apiErrorMessage(err, 'No se pudo registrar el check-in'), 'Cerrar', { duration: 5000 });
+      },
+    });
+  }
+
+  checkOut(reserva: Reserva): void {
+    if (reserva.id == null) return;
+    const id = reserva.id;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        width: '420px',
+        maxWidth: '95vw',
+        data: {
+          titulo: 'Registrar check-out',
+          mensaje: 'El servicio queda completado. Si falta cobrar el saldo, la cuenta sigue abierta.',
+          confirmar: 'Check-out',
+          peligro: false,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmado?: boolean) => {
+        if (!confirmado) return;
+        this.service.checkOut(id).subscribe({
+          next: () => {
+            this.snackBar.open('Check-out registrado.', 'Cerrar', { duration: 2500 });
+            this.cargar();
+          },
+          error: (err) => {
+            this.snackBar.open(apiErrorMessage(err, 'No se pudo registrar el check-out'), 'Cerrar', { duration: 5000 });
+          },
+        });
+      });
   }
 
   /** Baja de negocio: libera el turno y conserva el historial. */

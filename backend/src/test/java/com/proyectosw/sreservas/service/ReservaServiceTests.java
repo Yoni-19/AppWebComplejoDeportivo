@@ -261,6 +261,100 @@ class ReservaServiceTests {
                 .isEqualTo(HttpStatus.CONFLICT);
     }
 
+    @Test
+    void noSePuedeReprogramarUnaReservaEnCurso() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        Reserva enCurso = reservaVigente();
+        enCurso.setEstado(EstadoServicio.EN_CURSO);
+        when(repository.findById(5)).thenReturn(Optional.of(enCurso));
+
+        assertThatThrownBy(() -> service.actualizar(5, request(1, null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(repository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void elCheckInPoneLaReservaEnCurso() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        when(repository.findById(5)).thenReturn(Optional.of(reservaVigente()));
+        when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Reserva enCurso = service.registrarCheckIn(5);
+
+        assertThat(enCurso.getEstado()).isEqualTo(EstadoServicio.EN_CURSO);
+    }
+
+    @Test
+    void noSePuedeHacerCheckInAntesDelHorarioDelTurno() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        when(repository.findById(5)).thenReturn(Optional.of(reservaDe(2)));
+
+        assertThatThrownBy(() -> service.registrarCheckIn(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(repository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void elClienteNoPuedeRegistrarCheckInNiCheckOut() {
+        when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
+
+        assertThatThrownBy(() -> service.registrarCheckIn(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThatThrownBy(() -> service.registrarCheckOut(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        verify(repository, never()).findById(anyInt());
+    }
+
+    @Test
+    void elCheckOutCompletaLaReservaEnCurso() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        Reserva enCurso = reservaVigente();
+        enCurso.setEstado(EstadoServicio.EN_CURSO);
+        when(repository.findById(5)).thenReturn(Optional.of(enCurso));
+        when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Reserva completada = service.registrarCheckOut(5);
+
+        assertThat(completada.getEstado()).isEqualTo(EstadoServicio.COMPLETADA);
+    }
+
+    @Test
+    void noSePuedeHacerCheckOutSinCheckIn() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        when(repository.findById(5)).thenReturn(Optional.of(reservaVigente()));
+
+        assertThatThrownBy(() -> service.registrarCheckOut(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(repository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void losTurnosVencidosSinCheckInQuedanNoAsistio() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        Reserva vencida = reservaDe(2);
+        Ocupacion ocupacion = vencida.getOcupacion();
+        ocupacion.setActiva(true);
+        ocupacion.setFechaHoraInicio(LocalDateTime.now().minusHours(3));
+        ocupacion.setFechaHoraFin(LocalDateTime.now().minusHours(2));
+        when(repository.findByEstado(EstadoServicio.CONFIRMADA)).thenReturn(List.of(vencida));
+        when(repository.findAll()).thenReturn(List.of(vencida));
+
+        service.listarTodos();
+
+        assertThat(vencida.getEstado()).isEqualTo(EstadoServicio.NO_ASISTIO);
+        assertThat(ocupacion.isActiva()).isFalse();
+    }
+
     private Usuario usuario(Integer id, Rol rol) {
         Usuario usuario = new Usuario();
         usuario.setId(id);
@@ -285,6 +379,15 @@ class ReservaServiceTests {
         reserva.setOcupacion(ocupacion);
         reserva.setEstado(EstadoServicio.CONFIRMADA);
         reserva.setMontoTotal(new BigDecimal("75.00"));
+        return reserva;
+    }
+
+    /** Reserva en pleno turno: el check-in se permite desde una hora antes. */
+    private Reserva reservaVigente() {
+        Reserva reserva = reservaDe(2);
+        LocalDateTime ahora = LocalDateTime.now();
+        reserva.getOcupacion().setFechaHoraInicio(ahora.minusMinutes(10));
+        reserva.getOcupacion().setFechaHoraFin(ahora.plusMinutes(50));
         return reserva;
     }
 
