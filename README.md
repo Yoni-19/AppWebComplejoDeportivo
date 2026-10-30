@@ -78,6 +78,9 @@ clave se entrega en mano y **no hay cambio forzado** (riesgo aceptado).
   se cobra al cerrar. El detalle de la reserva funciona como el detalle de un pedido.
 - **Cancelar**: `PUT /api/reservas/{id}/cancelar` conserva la reserva y sus pagos, libera el
   turno y deja la cuenta `ANULADA`. El `DELETE` de reservas es solo del `ADMIN`.
+- **Check-in / check-out**: los registra la recepción con `PUT /api/reservas/{id}/check-in`
+  (`CONFIRMADA → EN_CURSO`) y `.../check-out` (`EN_CURSO → COMPLETADA`). Los turnos que vencen
+  sin check-in quedan `NO_ASISTIO`. El saldo se cobra aparte con `POST /api/pagos`.
 - **Contratos**: las respuestas usan DTOs; el hash BCrypt de la clave nunca sale por la API.
 - **CORS**: habilitado solo para `http://localhost:4201` y `http://127.0.0.1:4201`.
 
@@ -89,5 +92,7 @@ Roles implementados en backend y frontend (menú, rutas, dashboard y formularios
 P1 cerrado: calendario único en `Ocupacion` y estados `EstadoServicio`.
 P2 cerrado: `Cuenta` + `DetalleReserva` + `Pago` tipado, anticipo del 50 % al reservar y cobro
 del saldo desde la lista de reservas. Alta presencial: el recepcionista registra y edita
-clientes desde la lista o desde el formulario de reserva. Pendiente: implementos (gratis, con
-cargo por pérdida), check-in/out, caja, entrenamientos, mantenimiento y diagramas.
+clientes desde la lista o desde el formulario de reserva.
+P3 implementado: check-in y check-out desde la lista (solo recepción) y expiración de los turnos
+sin check-in. Pendiente: implementos (gratis, con cargo por pérdida), caja, entrenamientos,
+mantenimiento y diagramas. El plan completo está en `ROADMAP.md`.

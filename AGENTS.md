@@ -12,6 +12,8 @@ Monorepo con dos subproyectos independientes que comparten un solo repositorio g
 Cada carpeta tiene **su propio `.gitignore`** y sus reglas aplican solo dentro de ella.
 El `.gitignore` de la raíz cubre únicamente la raíz (van anclados con `/` a propósito).
 
+El plan de trabajo por fases (P1…P7) y su estado están en `ROADMAP.md`.
+
 ## Comandos
 
 Todo se corre **desde la carpeta del subproyecto**:
@@ -62,6 +64,9 @@ propio sigue existiendo y sigue funcionando.
 - Cancelar es una transición de estado (`PUT /api/reservas/{id}/cancelar`): conserva la reserva
   y sus pagos, libera el turno y deja la cuenta `ANULADA`. El `DELETE` de reservas es solo
   `ADMIN` y es limpieza de datos, no una baja de servicio.
+- El check-in y el check-out los registra solo el personal: `PUT /api/reservas/{id}/check-in`
+  (`CONFIRMADA → EN_CURSO`) y `.../check-out` (`EN_CURSO → COMPLETADA`). Los turnos que vencen
+  sin check-in quedan `NO_ASISTIO`.
 - La cancha y el horario viven en `Ocupacion`; `Reserva` solo la referencia.
 - Cada reserva nace con una `Cuenta` 1:1 y un `DetalleReserva` tipo pedido; `montoTotal` es la
   suma de las líneas. El anticipo del 50 % se registra al crear la reserva y el saldo se cobra

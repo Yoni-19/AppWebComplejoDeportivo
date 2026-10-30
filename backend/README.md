@@ -78,6 +78,8 @@ Todos salvo `POST /api/auth/login` y `POST /api/usuarios` (registro) exigen
 | GET/POST | `/api/reservas` | Listar / crear reserva (el alta exige `metodoPago` y cobra el anticipo) |
 | GET/PUT/DELETE | `/api/reservas/{id}` | Detalle / reprogramar / eliminar (solo `ADMIN`) |
 | PUT | `/api/reservas/{id}/cancelar` | Baja de negocio: estado `CANCELADA` y cuenta anulada |
+| PUT | `/api/reservas/{id}/check-in` | Arranca el turno (`CONFIRMADA → EN_CURSO`), solo personal |
+| PUT | `/api/reservas/{id}/check-out` | Cierra el turno (`EN_CURSO → COMPLETADA`), solo personal |
 | GET | `/api/reservas/{id}/cuenta` | Cuenta de la reserva: total, saldo, estado y pagos |
 | GET/POST | `/api/pagos` | Listar / registrar movimiento (solo `ADMIN` y `RECEPCIONISTA`) |
 | GET/PUT/DELETE | `/api/pagos/{id}` | Detalle / actualizar método / eliminar |
@@ -96,12 +98,19 @@ nunca viaja en el token** y un cambio de rol aplica al instante. El frontend lo 
 | Eliminar clientes y cambiar roles | sí | no | no |
 | Ver todas las reservas | sí | sí | solo las propias |
 | Crear reserva | sí | sí | sí (a su nombre) |
-| Editar/eliminar reserva | sí | sí | solo las propias |
+| Editar reserva | sí | sí | solo las propias |
+| Check-in / check-out | sí | sí | no |
+| Eliminar reserva (borrado físico) | sí | no | no |
 | Registrar cobros (`/api/pagos`) | sí | sí | no |
 
 Un `CLIENTE` puede reprogramar o cancelar **sus** reservas: el `403` por reserva ajena lo aplica
-`ReservaService.verificarPropiedad`. Solo una reserva `CONFIRMADA` se cancela; `COMPLETADA` y
-`CANCELADA` no se reprograman ni se cancelan (`409`).
+`ReservaService.verificarPropiedad`. Solo una reserva `CONFIRMADA` se cancela; `EN_CURSO`,
+`COMPLETADA` y `CANCELADA` no se reprograman (`409`).
+
+El check-in y el check-out los registra la recepción: `CONFIRMADA → EN_CURSO → COMPLETADA`.
+El check-in se acepta desde una hora antes del turno y hasta su fin; los turnos que terminan sin
+check-in quedan `NO_ASISTIO` la próxima vez que se listan las reservas. El cobro del saldo es un
+paso aparte (`POST /api/pagos`): la cuenta se cierra sola cuando el saldo llega a `0`.
 
 Cancelar conserva el historial: la ocupación queda inactiva (el turno se libera) y la cuenta
 pasa a `ANULADA` con saldo `0`. El borrado físico (`DELETE /api/reservas/{id}`) es solo para el

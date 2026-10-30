@@ -102,8 +102,11 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
   Nunca mover esa validación solo a `SecurityConfig`: ahí no se conoce el dueño de la fila.
 - `DELETE /api/reservas/**` es solo `ADMIN`. Es borrado físico de mantenimiento, no una operación
   de negocio: la baja de un servicio es `PUT /api/reservas/{id}/cancelar`.
-- Una reserva `COMPLETADA` o `CANCELADA` no se reprograma (`409`). Solo una `CONFIRMADA` se
-  cancela; `EN_CURSO`, `COMPLETADA`, `CANCELADA` y `NO_ASISTIO` dan `409`.
+- `PUT /api/reservas/*/check-in` y `PUT /api/reservas/*/check-out` son solo `ADMIN` /
+  `RECEPCIONISTA`. La matriz los declara **antes** del matcher genérico de `PUT` (el orden
+  importa) y `ReservaService.verificarPersonal` repite la regla: un `CLIENTE` recibe `403`.
+- No se reprograma una reserva `EN_CURSO`, `COMPLETADA` o `CANCELADA` (`409`). Solo una
+  `CONFIRMADA` se cancela; `EN_CURSO`, `COMPLETADA`, `CANCELADA` y `NO_ASISTIO` dan `409`.
 - Un token malformado o vencido **no corta la cadena**: `JwtAuthFilter` sigue como anónimo y la
   autorización de cada ruta decide. Las rutas públicas (`/api/auth/login`, `POST /api/usuarios`)
   funcionan igual; las privadas devuelven `401`.
@@ -147,6 +150,13 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
   cuenta `ANULADA`.
 - `DELETE /api/reservas/{id}` (solo `ADMIN`) borra pagos, cuenta, detalle, reserva y ocupación,
   en ese orden. No tiene guard de pagos: es limpieza deliberada, no una baja de servicio.
+- Check-in (`PUT /api/reservas/{id}/check-in`): `CONFIRMADA → EN_CURSO`, solo personal y solo
+  desde una hora antes del inicio hasta el fin del turno.
+- Check-out (`PUT /api/reservas/{id}/check-out`): `EN_CURSO → COMPLETADA`, solo personal. El
+  cobro del saldo es un paso aparte (`POST /api/pagos`); la cuenta se cierra sola cuando el
+  saldo llega a `0`.
+- `NO_ASISTIO` no tiene scheduler: `ReservaService.listarTodos` vence los turnos `CONFIRMADA`
+  cuyo horario ya terminó, marca la reserva y deja la ocupación inactiva.
 - `PUT /api/usuarios/{id}` acepta clave opcional (`UsuarioUpdateRequest`): si viene `null`,
   la clave no cambia. Un `RECEPCIONISTA` solo puede editar `CLIENTE`; al personal → `403`.
 - `POST /api/usuarios` exige clave (`UsuarioRequest`); `PUT` también la acepta y la re-codifica.
@@ -166,6 +176,8 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
 - `PUT /api/reservas/{id}/cancelar` es la única baja de negocio y devuelve la reserva con
   `estado: CANCELADA`. `DELETE /api/reservas/{id}` es solo `ADMIN`; al `RECEPCIONISTA` y al
   `CLIENTE` les devuelve `403`.
+- `PUT /api/reservas/{id}/check-in` y `/check-out` devuelven la reserva con el estado nuevo y son
+  solo para `ADMIN` / `RECEPCIONISTA` (`403` al `CLIENTE`).
 - `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y pagos; un `CLIENTE` solo
   puede consultar la cuenta de sus propias reservas (`403` igual que con la reserva).
 - `POST /api/pagos` es solo para `ADMIN` / `RECEPCIONISTA`. El cliente paga el anticipo al
