@@ -1,0 +1,43 @@
+.caja-resumen {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+}
+
+.caja-table {
+  width: 100%;
+}
+
+.caja-horario {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.caja-saldo {
+  font-weight: 600;
+}
+
+.caja-metodo {
+  width: 150px;
+  margin-right: 8px;
+}
+
+.caja-estado-carga {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.caja-vacio {
+  padding: 32px 0;
+  text-align: center;
+  opacity: 0.7;
+}

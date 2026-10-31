@@ -15,6 +15,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { Cancha } from '../../core/models/cancha.model';
 import { Cliente } from '../../core/models/cliente.model';
+import { Implemento, ImplementoLineaAlta } from '../../core/models/implemento.model';
 import { METODOS_PAGO, MetodoPago } from '../../core/models/pago.model';
 import { DetalleReserva, EstadoServicio, ReservaAlta } from '../../core/models/reserva.model';
 import { AuthService } from '../../core/services/auth.service';
@@ -22,6 +23,7 @@ import { PageHeader } from '../../shared/ui/page-header.component';
 import { CanchaService } from '../canchas/cancha.service';
 import { ClienteRapidoDialogComponent } from '../clientes/cliente-rapido-dialog.component';
 import { ClienteService } from '../clientes/cliente.service';
+import { ImplementoService } from '../implementos/implemento.service';
 import { ReservaService } from './reserva.service';
 
 /** Builds "yyyy-MM-ddTHH:mm" from the LOCAL date, so no timezone shift is applied. */
@@ -51,6 +53,7 @@ export class ReservaFormComponent {
   private readonly service = inject(ReservaService);
   private readonly canchaService = inject(CanchaService);
   private readonly clienteService = inject(ClienteService);
+  private readonly implementoService = inject(ImplementoService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
@@ -67,6 +70,11 @@ export class ReservaFormComponent {
   /** Detalle tipo pedido que devuelve el backend al editar. */
   readonly detalle = signal<DetalleReserva[]>([]);
   readonly metodosPago = METODOS_PAGO;
+  /** Catálogo de implementos prestables: solo se ofrecen los activos. */
+  readonly implementos = signal<Implemento[]>([]);
+  /** Implementos pedidos en esta reserva: sin costo salvo que se dañen o se pierdan. */
+  readonly pedidos = signal<ImplementoLineaAlta[]>([]);
+  readonly implementoParaAgregar = signal<number | null>(null);
   private editingId: number | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -109,6 +117,11 @@ export class ReservaFormComponent {
     this.canchaService.list().subscribe({
       next: (canchas) => this.canchas.set(canchas.filter((c) => c.activa)),
       error: (err) => this.errorMessage.set(apiErrorMessage(err, 'No se pudieron cargar las canchas')),
+    });
+
+    this.implementoService.list().subscribe({
+      next: (implementos) => this.implementos.set(implementos.filter((i) => i.activo)),
+      error: (err) => this.errorMessage.set(apiErrorMessage(err, 'No se pudieron cargar los implementos')),
     });
 
     // El rol define si hace falta elegir el cliente; el rol llega de /api/auth/me.
@@ -194,6 +207,38 @@ export class ReservaFormComponent {
       });
   }
 
+  /** Implementos del catálogo que todavía no se pidieron: evita líneas duplicadas. */
+  get implementosDisponibles(): Implemento[] {
+    const usados = new Set(this.pedidos().map((p) => p.implementoId));
+    return this.implementos().filter((i) => i.id != null && !usados.has(i.id));
+  }
+
+  seleccionarImplemento(implementoId: number | null): void {
+    this.implementoParaAgregar.set(implementoId);
+  }
+
+  agregarImplemento(): void {
+    const implementoId = this.implementoParaAgregar();
+    if (implementoId == null) return;
+    this.pedidos.update((lista) => [...lista, { implementoId, cantidad: 1 }]);
+    this.implementoParaAgregar.set(null);
+  }
+
+  quitarImplemento(implementoId: number): void {
+    this.pedidos.update((lista) => lista.filter((p) => p.implementoId !== implementoId));
+  }
+
+  setCantidadImplemento(implementoId: number, valor: string): void {
+    const cantidad = Math.max(1, Number(valor) || 1);
+    this.pedidos.update((lista) =>
+      lista.map((p) => (p.implementoId === implementoId ? { ...p, cantidad } : p)),
+    );
+  }
+
+  nombreImplemento(implementoId: number): string {
+    return this.implementos().find((i) => i.id === implementoId)?.nombre ?? 'Implemento';
+  }
+
   submit(): void {
     if (this.form.disabled) return;
 
@@ -227,6 +272,10 @@ export class ReservaFormComponent {
     }
     if (!this.isEdit()) {
       payload.metodoPago = metodoPago ?? undefined;
+      // Los implementos se envían solo al crear: el préstamo queda como movimiento.
+      if (this.pedidos().length > 0) {
+        payload.implementos = this.pedidos();
+      }
     }
 
     const request$ = this.isEdit()

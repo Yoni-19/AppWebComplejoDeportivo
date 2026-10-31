@@ -38,13 +38,15 @@
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card">
-        <mat-card-content>
-          <mat-icon class="stat-icon">people</mat-icon>
-          <div class="stat-value">{{ totalClientes() }}</div>
-          <div class="stat-label">Clientes registrados</div>
-        </mat-card-content>
-      </mat-card>
+      @if (auth.esStaff()) {
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <mat-icon class="stat-icon">people</mat-icon>
+            <div class="stat-value">{{ totalClientes() }}</div>
+            <div class="stat-label">Clientes registrados</div>
+          </mat-card-content>
+        </mat-card>
+      }
     }
   </div>
 
@@ -64,16 +66,32 @@
         <mat-icon>event</mat-icon>
         <span>Gestionar reservas</span>
       </a>
+      @if (auth.esUtileria() || auth.esStaff()) {
+        <a mat-flat-button color="primary" routerLink="/utileria">
+          <mat-icon>inventory_2</mat-icon>
+          <span>Utilería</span>
+        </a>
+      }
+      @if (auth.esCaja()) {
+        <a mat-flat-button color="primary" routerLink="/caja">
+          <mat-icon>point_of_sale</mat-icon>
+          <span>Caja</span>
+        </a>
+      }
       @if (auth.esAdmin()) {
         <a mat-flat-button color="primary" routerLink="/canchas">
           <mat-icon>sports_soccer</mat-icon>
           <span>Gestionar canchas</span>
         </a>
+        <a mat-flat-button color="primary" routerLink="/implementos">
+          <mat-icon>sports_handball</mat-icon>
+          <span>Implementos</span>
+        </a>
         <a mat-flat-button color="primary" routerLink="/clientes">
           <mat-icon>people</mat-icon>
           <span>Gestionar clientes</span>
         </a>
-      } @else {
+      } @else if (auth.esStaff()) {
         <a mat-flat-button color="primary" routerLink="/clientes">
           <mat-icon>people</mat-icon>
           <span>Ver clientes</span>

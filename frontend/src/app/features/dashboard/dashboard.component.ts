@@ -56,6 +56,9 @@ export class DashboardComponent {
       this.canchasService.list().subscribe((canchas) => {
         this.canchasActivas.set(canchas.filter((c) => c.activa).length);
       });
+    }
+    // El listado de usuarios es solo para ADMIN y RECEPCIONISTA: utileria y caja reciben 403.
+    if (this.auth.esStaff()) {
       this.clientesService.listClientes().subscribe((clientes) => {
         this.totalClientes.set(clientes.length);
       });

@@ -30,7 +30,8 @@
 }
 
 .resumen-cobro,
-.detalle-reserva {
+.detalle-reserva,
+.implementos-pedido {
   border: 1px solid var(--mat-sys-outline-variant);
   border-radius: 12px;
   padding: 12px 16px;
@@ -40,6 +41,52 @@
     margin: 0 0 8px;
     font-size: 0.95rem;
     font-weight: 600;
+  }
+}
+
+.implementos-ayuda {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.implemento-pedido {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 0.9rem;
+}
+
+.implemento-pedido-nombre {
+  flex: 1;
+}
+
+.cantidad-input {
+  width: 72px;
+  padding: 4px 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  text-align: right;
+}
+
+.implemento-agregar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+
+  mat-form-field {
+    flex: 1;
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 }
 

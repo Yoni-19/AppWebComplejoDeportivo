@@ -1,0 +1,91 @@
+<section class="page">
+  <app-page-header title="Implementos" subtitle="Catálogo de equipamiento que se presta en el complejo" />
+
+  <mat-card class="form-card">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="guardar()" class="implemento-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Nombre</mat-label>
+          <input matInput formControlName="nombre" placeholder="Pelota de futbol" />
+          @if (form.controls.nombre.hasError('required')) {
+            <mat-error>El nombre es obligatorio</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Valor de reposición</mat-label>
+          <input matInput type="number" min="0" step="0.01" formControlName="valorReposicion" />
+          <span matTextPrefix>$&nbsp;</span>
+          <mat-hint>Se usa como precio sugerido si se pierde o se daña</mat-hint>
+        </mat-form-field>
+
+        <mat-slide-toggle formControlName="activo">Disponible para reservar</mat-slide-toggle>
+
+        <div class="implemento-actions">
+          @if (editando) {
+            <button mat-button type="button" (click)="cancelarEdicion()">Cancelar</button>
+          }
+          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+            @if (saving()) {
+              <mat-spinner diameter="20" strokeWidth="3" />
+            } @else {
+              <ng-container>
+                <mat-icon>save</mat-icon>
+                <span>{{ editando ? 'Guardar cambios' : 'Agregar implemento' }}</span>
+              </ng-container>
+            }
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  @if (loading()) {
+    <div class="implemento-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (implementos().length === 0) {
+    <p class="implemento-vacio">No hay implementos en el catálogo.</p>
+  } @else {
+    <div class="table-wrap">
+      <table mat-table [dataSource]="implementos()" class="implemento-table">
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef>Implemento</th>
+          <td mat-cell *matCellDef="let i">{{ i.nombre }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="valorReposicion">
+          <th mat-header-cell *matHeaderCellDef>Reposición</th>
+          <td mat-cell *matCellDef="let i">{{ i.valorReposicion | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="activo">
+          <th mat-header-cell *matHeaderCellDef>Disponible</th>
+          <td mat-cell *matCellDef="let i">
+            <span class="estado-chip" [class]="'estado-' + (i.activo ? 'activa' : 'inactiva')">
+              {{ i.activo ? 'Sí' : 'No' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let i">
+            <button mat-icon-button (click)="editar(i)" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button (click)="alternarEstado(i)" [attr.aria-label]="i.activo ? 'Desactivar' : 'Activar'">
+              <mat-icon>{{ i.activo ? 'block' : 'check_circle' }}</mat-icon>
+            </button>
+            <button mat-icon-button (click)="eliminar(i)" aria-label="Eliminar">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  }
+</section>

@@ -1,0 +1,90 @@
+<section class="page">
+  <app-page-header title="Caja" subtitle="Cobro del saldo de los turnos del complejo" />
+
+  @if (loading()) {
+    <div class="caja-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (pendientes().length === 0) {
+    <p class="caja-vacio">No hay saldos pendientes de cobro.</p>
+  } @else {
+    <div class="caja-resumen">
+      <span>Reservas con saldo: <strong>{{ pendientes().length }}</strong></span>
+      <span>Total por cobrar: <strong>{{ totalPendiente() | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</strong></span>
+    </div>
+
+    <div class="table-wrap">
+      <table mat-table [dataSource]="pendientes()" class="caja-table">
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>#</th>
+          <td mat-cell *matCellDef="let r">{{ r.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="cliente">
+          <th mat-header-cell *matHeaderCellDef>Cliente</th>
+          <td mat-cell *matCellDef="let r">{{ r.usuarioNombre }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="cancha">
+          <th mat-header-cell *matHeaderCellDef>Cancha</th>
+          <td mat-cell *matCellDef="let r">
+            {{ r.canchaNombre }}
+            <small class="caja-horario">
+              {{ r.fechaHoraInicio | date: 'dd/MM HH:mm' }} – {{ r.fechaHoraFin | date: 'HH:mm' }}
+            </small>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let r">{{ r.estado }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="total">
+          <th mat-header-cell *matHeaderCellDef>Total</th>
+          <td mat-cell *matCellDef="let r">{{ r.montoTotal | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="saldo">
+          <th mat-header-cell *matHeaderCellDef>Saldo</th>
+          <td mat-cell *matCellDef="let r" class="caja-saldo">
+            {{ r.saldo | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cobro">
+          <th mat-header-cell *matHeaderCellDef>Cobrar</th>
+          <td mat-cell *matCellDef="let r">
+            <mat-form-field appearance="outline" class="caja-metodo">
+              <mat-label>Método</mat-label>
+              <mat-select [value]="metodoDe(r.id)" (selectionChange)="setMetodo(r.id, $event.value)">
+                @for (metodo of metodosPago; track metodo) {
+                  <mat-option [value]="metodo">{{ metodo }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              (click)="cobrar(r)"
+              [disabled]="cobrando() === r.id"
+            >
+              @if (cobrando() === r.id) {
+                <mat-spinner diameter="18" strokeWidth="3" />
+              } @else {
+                <ng-container>
+                  <mat-icon>point_of_sale</mat-icon>
+                  <span>Cobrar</span>
+                </ng-container>
+              }
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  }
+</section>

@@ -126,6 +126,49 @@
           </div>
         }
 
+        @if (!isEdit()) {
+          <div class="full-width implementos-pedido">
+            <h3>Implementos</h3>
+            <p class="implementos-ayuda">
+              Se prestan sin costo. Solo se cobran si se dañan o se pierden y utilería lo registra al devolverlos.
+            </p>
+
+            @for (pedido of pedidos(); track pedido.implementoId) {
+              <div class="implemento-pedido">
+                <span class="implemento-pedido-nombre">{{ nombreImplemento(pedido.implementoId) }}</span>
+                <input
+                  class="cantidad-input"
+                  type="number"
+                  min="1"
+                  [value]="pedido.cantidad"
+                  (input)="setCantidadImplemento(pedido.implementoId, $any($event.target).value)"
+                  [attr.aria-label]="'Cantidad de ' + nombreImplemento(pedido.implementoId)"
+                />
+                <button mat-icon-button type="button" (click)="quitarImplemento(pedido.implementoId)" aria-label="Quitar implemento">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+
+            @if (implementosDisponibles.length > 0) {
+              <div class="implemento-agregar">
+                <mat-form-field appearance="outline">
+                  <mat-label>Agregar implemento</mat-label>
+                  <mat-select [value]="implementoParaAgregar()" (selectionChange)="seleccionarImplemento($event.value)">
+                    @for (implemento of implementosDisponibles; track implemento.id) {
+                      <mat-option [value]="implemento.id">{{ implemento.nombre }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <button mat-stroked-button type="button" (click)="agregarImplemento()" [disabled]="implementoParaAgregar() == null">
+                  <mat-icon>add</mat-icon>
+                  <span>Agregar</span>
+                </button>
+              </div>
+            }
+          </div>
+        }
+
         @if (isEdit() && detalle().length) {
           <div class="full-width detalle-reserva">
             <h3>Detalle de la reserva</h3>

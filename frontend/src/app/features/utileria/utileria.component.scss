@@ -1,0 +1,90 @@
+.form-card {
+  margin-bottom: 16px;
+}
+
+.reserva-select {
+  width: 100%;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+}
+
+.utileria-table {
+  width: 100%;
+
+  td {
+    white-space: nowrap;
+  }
+}
+
+.cantidad-input {
+  width: 72px;
+  padding: 4px 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: inherit;
+  text-align: right;
+
+  & + & {
+    margin-left: 8px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.utileria-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.utileria-nota {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  opacity: 0.75;
+  text-align: right;
+}
+
+.cargo-card h3 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+}
+
+.cargo-form {
+  display: grid;
+  grid-template-columns: 160px minmax(200px, 1fr) 120px 160px auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.utileria-estado-carga {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.utileria-vacio {
+  padding: 32px 0;
+  text-align: center;
+  opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .cargo-form {
+    grid-template-columns: 1fr;
+  }
+}

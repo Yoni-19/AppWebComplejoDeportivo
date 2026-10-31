@@ -24,6 +24,24 @@
           <span matListItemTitle>Canchas</span>
         </a>
       }
+      @if (auth.esUtileria() || auth.esStaff()) {
+        <a mat-list-item routerLink="/utileria" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>inventory_2</mat-icon>
+          <span matListItemTitle>Utilería</span>
+        </a>
+      }
+      @if (auth.esCaja()) {
+        <a mat-list-item routerLink="/caja" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>point_of_sale</mat-icon>
+          <span matListItemTitle>Caja</span>
+        </a>
+      }
+      @if (auth.esAdmin()) {
+        <a mat-list-item routerLink="/implementos" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>sports_handball</mat-icon>
+          <span matListItemTitle>Implementos</span>
+        </a>
+      }
       @if (auth.esStaff()) {
         <a mat-list-item routerLink="/clientes" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
           <mat-icon matListItemIcon>people</mat-icon>

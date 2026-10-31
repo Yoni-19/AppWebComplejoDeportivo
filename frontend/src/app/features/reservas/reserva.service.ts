@@ -41,9 +41,12 @@ export class ReservaService {
     return this.http.put<Reserva>(`${this.url}/${id}/check-in`, {});
   }
 
-  /** Recepcion: cierra el turno como COMPLETADA. El saldo se cobra aparte. */
-  checkOut(id: number): Observable<Reserva> {
-    return this.http.put<Reserva>(`${this.url}/${id}/check-out`, {});
+  /**
+   * Recepcion: cierra el turno como COMPLETADA. El backend rechaza el cierre si
+   * la cuenta tiene saldo; `forzar` (solo ADMIN) lo cierra con deuda.
+   */
+  checkOut(id: number, forzar = false): Observable<Reserva> {
+    return this.http.put<Reserva>(`${this.url}/${id}/check-out?forzar=${forzar}`, {});
   }
 
   /** Borrado fisico; el backend solo lo permite a un ADMIN. */

@@ -12,12 +12,14 @@ export interface Cliente {
 }
 
 /** Role of a user; mirrors the backend enum `Rol`. */
-export type Rol = 'ADMIN' | 'RECEPCIONISTA' | 'CLIENTE';
+export type Rol = 'ADMIN' | 'RECEPCIONISTA' | 'UTILERIA' | 'CAJA' | 'CLIENTE';
 
 /** Human-readable role names used in chips and menus. */
 export const ROL_LABEL: Record<Rol, string> = {
   ADMIN: 'Administrador',
   RECEPCIONISTA: 'Recepcionista',
+  UTILERIA: 'Utilería',
+  CAJA: 'Caja',
   CLIENTE: 'Cliente',
 };
 
