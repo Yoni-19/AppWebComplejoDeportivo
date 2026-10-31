@@ -21,9 +21,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.proyectosw.sreservas.dto.ImplementoLineaRequest;
 import com.proyectosw.sreservas.dto.ReservaRequest;
 import com.proyectosw.sreservas.model.Cancha;
 import com.proyectosw.sreservas.model.Cuenta;
+import com.proyectosw.sreservas.model.DetalleReserva;
+import com.proyectosw.sreservas.model.Implemento;
 import com.proyectosw.sreservas.model.Ocupacion;
 import com.proyectosw.sreservas.model.Reserva;
 import com.proyectosw.sreservas.model.Usuario;
@@ -31,10 +34,13 @@ import com.proyectosw.sreservas.model.enums.EstadoCuenta;
 import com.proyectosw.sreservas.model.enums.EstadoServicio;
 import com.proyectosw.sreservas.model.enums.MetodoPago;
 import com.proyectosw.sreservas.model.enums.Rol;
+import com.proyectosw.sreservas.model.enums.TipoDetalle;
 import com.proyectosw.sreservas.model.enums.TipoOcupacion;
 import com.proyectosw.sreservas.repository.CanchaRepository;
 import com.proyectosw.sreservas.repository.CuentaRepository;
 import com.proyectosw.sreservas.repository.DetalleReservaRepository;
+import com.proyectosw.sreservas.repository.ImplementoRepository;
+import com.proyectosw.sreservas.repository.MovimientoImplementoRepository;
 import com.proyectosw.sreservas.repository.OcupacionRepository;
 import com.proyectosw.sreservas.repository.PagoRepository;
 import com.proyectosw.sreservas.repository.ReservaRepository;
@@ -59,6 +65,10 @@ class ReservaServiceTests {
     private CuentaRepository cuentaRepository;
     @Mock
     private PagoRepository pagoRepository;
+    @Mock
+    private ImplementoRepository implementoRepository;
+    @Mock
+    private MovimientoImplementoRepository movimientoImplementoRepository;
     @Mock
     private CuentaService cuentaService;
 
@@ -115,6 +125,51 @@ class ReservaServiceTests {
         assertThat(creada.getDetalles().get(0).getCantidad()).isEqualTo(2);
         assertThat(creada.getCuenta()).isNotNull();
         verify(cuentaService).registrarPago(any(Cuenta.class), any());
+    }
+
+    @Test
+    void laReservaGuardaLosImplementosPedidosSinCosto() {
+        when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
+        when(canchaRepository.findById(1)).thenReturn(Optional.of(canchaActiva()));
+        when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(cuentaService.crear(any(Reserva.class), any(BigDecimal.class)))
+                .thenAnswer(inv -> cuentaDe(inv.getArgument(1)));
+        when(implementoRepository.findById(7)).thenReturn(Optional.of(implementoActivo(7, true)));
+
+        ReservaRequest pedido = new ReservaRequest(
+                LocalDateTime.of(2026, 12, 1, 10, 0),
+                LocalDateTime.of(2026, 12, 1, 11, 30),
+                1, null, MetodoPago.EFECTIVO,
+                List.of(new ImplementoLineaRequest(7, 2)));
+
+        Reserva creada = service.crear(pedido);
+
+        assertThat(creada.getMontoTotal()).isEqualByComparingTo("150.00");
+        assertThat(creada.getDetalles()).hasSize(2);
+        DetalleReserva linea = creada.getDetalles().get(1);
+        assertThat(linea.getTipo()).isEqualTo(TipoDetalle.IMPLEMENTO);
+        assertThat(linea.getCantidad()).isEqualTo(2);
+        assertThat(linea.getSubtotal()).isEqualByComparingTo("0.00");
+    }
+
+    @Test
+    void noSePuedePedirUnImplementoInactivo() {
+        when(currentUser.get()).thenReturn(usuario(2, Rol.CLIENTE));
+        when(canchaRepository.findById(1)).thenReturn(Optional.of(canchaActiva()));
+        when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(implementoRepository.findById(7)).thenReturn(Optional.of(implementoActivo(7, false)));
+
+        ReservaRequest pedido = new ReservaRequest(
+                LocalDateTime.of(2026, 12, 1, 10, 0),
+                LocalDateTime.of(2026, 12, 1, 11, 30),
+                1, null, MetodoPago.EFECTIVO,
+                List.of(new ImplementoLineaRequest(7, 1)));
+
+        assertThatThrownBy(() -> service.crear(pedido))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(cuentaService, never()).crear(any(Reserva.class), any(BigDecimal.class));
     }
 
     @Test
@@ -339,6 +394,50 @@ class ReservaServiceTests {
     }
 
     @Test
+    void noSePuedeHacerCheckOutConSaldoPendiente() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        Reserva enCurso = reservaVigente();
+        enCurso.setEstado(EstadoServicio.EN_CURSO);
+        enCurso.setCuenta(cuentaDe(new BigDecimal("75.00")));
+        when(repository.findById(5)).thenReturn(Optional.of(enCurso));
+
+        assertThatThrownBy(() -> service.registrarCheckOut(5))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
+        verify(repository, never()).save(any(Reserva.class));
+    }
+
+    @Test
+    void elAdminPuedeCerrarElTurnoConSaldoPendiente() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.ADMIN));
+        Reserva enCurso = reservaVigente();
+        enCurso.setEstado(EstadoServicio.EN_CURSO);
+        enCurso.setCuenta(cuentaDe(new BigDecimal("75.00")));
+        when(repository.findById(5)).thenReturn(Optional.of(enCurso));
+        when(repository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Reserva completada = service.registrarCheckOut(5, true);
+
+        assertThat(completada.getEstado()).isEqualTo(EstadoServicio.COMPLETADA);
+    }
+
+    @Test
+    void soloElAdminPuedeForzarElCheckOut() {
+        when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
+        Reserva enCurso = reservaVigente();
+        enCurso.setEstado(EstadoServicio.EN_CURSO);
+        enCurso.setCuenta(cuentaDe(new BigDecimal("75.00")));
+        when(repository.findById(5)).thenReturn(Optional.of(enCurso));
+
+        assertThatThrownBy(() -> service.registrarCheckOut(5, true))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        verify(repository, never()).save(any(Reserva.class));
+    }
+
+    @Test
     void losTurnosVencidosSinCheckInQuedanNoAsistio() {
         when(currentUser.get()).thenReturn(usuario(9, Rol.RECEPCIONISTA));
         Reserva vencida = reservaDe(2);
@@ -416,6 +515,15 @@ class ReservaServiceTests {
                 canchaId,
                 null,
                 null);
+    }
+
+    private Implemento implementoActivo(Integer id, boolean activo) {
+        Implemento implemento = new Implemento();
+        implemento.setId(id);
+        implemento.setNombre("Pelota de futbol");
+        implemento.setValorReposicion(new BigDecimal("25.00"));
+        implemento.setActivo(activo);
+        return implemento;
     }
 
     private Cancha canchaActiva() {

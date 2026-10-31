@@ -5,7 +5,18 @@
 INSERT IGNORE INTO usuario (id, nombres, apellidos, correo, clave, rol) VALUES
   (1, 'Admin', 'Sistema', 'admin@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'ADMIN'),
   (2, 'Laura', 'Gomez', 'laura@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE'),
-  (3, 'Pedro', 'Diaz', 'pedro@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE');
+  (3, 'Pedro', 'Diaz', 'pedro@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE'),
+  (101, 'Rocio', 'Utileria', 'utileria@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'UTILERIA'),
+  (102, 'Martin', 'Caja', 'caja@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CAJA');
+
+-- Catalogo de implementos: no hay stock en el sistema, solo que se presta y cuanto
+-- cuesta reponerlo si se pierde o se dania.
+INSERT IGNORE INTO implemento (id, nombre, valor_reposicion, activo) VALUES
+  (1, 'Pelota de futbol', 25.00, 1),
+  (2, 'Pelota de futsal', 22.00, 1),
+  (3, 'Pelota de tenis', 8.00, 1),
+  (4, 'Red de voley', 45.00, 1),
+  (5, 'Petos (juego de 10)', 60.00, 1);
 
 INSERT IGNORE INTO cancha (id, nombre, deporte, precio_por_hora, activa) VALUES
   (1, 'Cancha Futbol 1', 'FUTBOL', 70.00, 1),
@@ -37,6 +48,12 @@ INSERT IGNORE INTO detalle_reserva (id, reserva_id, tipo, descripcion, cantidad,
   (3, 3, 'CANCHA', 'Cancha Tenis 1', 1, 90.00, 90.00),
   (4, 4, 'CANCHA', 'Cancha Tenis 1', 2, 90.00, 180.00),
   (5, 5, 'CANCHA', 'Cancha Futbol 1', 1, 70.00, 70.00);
+
+-- Implementos pedidos: linea IMPLEMENTO con precio cero. Solo se cobran si se
+-- pierden o se danian al devolverlos (ahi aparecen DANIO / PERDIDA).
+INSERT IGNORE INTO detalle_reserva (id, reserva_id, implemento_id, tipo, descripcion, cantidad, precio_unitario, subtotal) VALUES
+  (6, 1, 1, 'IMPLEMENTO', 'Pelota de futbol', 2, 0.00, 0.00),
+  (7, 2, 5, 'IMPLEMENTO', 'Petos (juego de 10)', 1, 0.00, 0.00);
 
 -- La cuenta es la cabecera contable: total, saldo pendiente y estado.
 INSERT IGNORE INTO cuenta (id, reserva_id, total, saldo, estado) VALUES

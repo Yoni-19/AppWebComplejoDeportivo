@@ -3,18 +3,22 @@ package com.proyectosw.sreservas.service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.proyectosw.sreservas.dto.ImplementoLineaRequest;
 import com.proyectosw.sreservas.dto.ReservaRequest;
 import com.proyectosw.sreservas.factory.PagoFactory;
 import com.proyectosw.sreservas.model.Cancha;
 import com.proyectosw.sreservas.model.Cuenta;
 import com.proyectosw.sreservas.model.DetalleReserva;
+import com.proyectosw.sreservas.model.Implemento;
 import com.proyectosw.sreservas.model.Ocupacion;
 import com.proyectosw.sreservas.model.Pago;
 import com.proyectosw.sreservas.model.Reserva;
@@ -26,6 +30,8 @@ import com.proyectosw.sreservas.model.enums.TipoOcupacion;
 import com.proyectosw.sreservas.repository.CanchaRepository;
 import com.proyectosw.sreservas.repository.CuentaRepository;
 import com.proyectosw.sreservas.repository.DetalleReservaRepository;
+import com.proyectosw.sreservas.repository.ImplementoRepository;
+import com.proyectosw.sreservas.repository.MovimientoImplementoRepository;
 import com.proyectosw.sreservas.repository.OcupacionRepository;
 import com.proyectosw.sreservas.repository.PagoRepository;
 import com.proyectosw.sreservas.repository.ReservaRepository;
@@ -43,12 +49,16 @@ public class ReservaService {
     private final DetalleReservaRepository detalleRepository;
     private final CuentaRepository cuentaRepository;
     private final PagoRepository pagoRepository;
+    private final ImplementoRepository implementoRepository;
+    private final MovimientoImplementoRepository movimientoImplementoRepository;
     private final CuentaService cuentaService;
 
     public ReservaService(final ReservaRepository repository, final OcupacionRepository ocupacionRepository,
             final CanchaRepository canchaRepository, final UsuarioRepository usuarioRepository,
             final CurrentUserService currentUser, final DetalleReservaRepository detalleRepository,
             final CuentaRepository cuentaRepository, final PagoRepository pagoRepository,
+            final ImplementoRepository implementoRepository,
+            final MovimientoImplementoRepository movimientoImplementoRepository,
             final CuentaService cuentaService) {
         this.repository = repository;
         this.ocupacionRepository = ocupacionRepository;
@@ -58,6 +68,8 @@ public class ReservaService {
         this.detalleRepository = detalleRepository;
         this.cuentaRepository = cuentaRepository;
         this.pagoRepository = pagoRepository;
+        this.implementoRepository = implementoRepository;
+        this.movimientoImplementoRepository = movimientoImplementoRepository;
         this.cuentaService = cuentaService;
     }
 
@@ -149,6 +161,10 @@ public class ReservaService {
         DetalleReserva linea = lineaCancha(reserva, cancha, request.fechaHoraInicio(), request.fechaHoraFin());
         detalleRepository.save(linea);
         reserva.getDetalles().add(linea);
+
+        // Los implementos se piden al reservar y quedan como lineas sin costo.
+        // Se cobran solo si utileria registra un danio o una perdida al devolverlos.
+        agregarLineasImplemento(reserva, request.implementos());
 
         Cuenta cuenta = cuentaService.crear(reserva, reserva.getMontoTotal());
         reserva.setCuenta(cuenta);
@@ -283,11 +299,19 @@ public class ReservaService {
     }
 
     /**
-     * Check-out del turno: cierra el servicio como COMPLETADA. El cobro del saldo
-     * es un paso aparte ({@code POST /api/pagos}): la cancha y la caja no se mezclan.
+     * Check-out del turno: cierra el servicio como COMPLETADA.
+     *
+     * El cobro del saldo es un paso aparte ({@code POST /api/pagos}); por eso el
+     * turno no se cierra con deuda. Un ADMIN puede forzarlo para el caso de un
+     * cliente que se retira sin pagar.
      */
     @Transactional
     public Reserva registrarCheckOut(Integer id) {
+        return registrarCheckOut(id, false);
+    }
+
+    @Transactional
+    public Reserva registrarCheckOut(Integer id, boolean forzar) {
         verificarPersonal();
 
         Reserva existente = repository.findById(id)
@@ -297,6 +321,18 @@ public class ReservaService {
         if (existente.getEstado() != EstadoServicio.EN_CURSO) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Solo se puede hacer check-out de una reserva en curso");
+        }
+
+        if (forzar && !Rol.ADMIN.equals(currentUser.get().getRol())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un ADMIN puede cerrar un turno con saldo pendiente");
+        }
+
+        Cuenta cuenta = existente.getCuenta();
+        if (!forzar && cuenta != null && cuenta.getSaldo().signum() > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "La cuenta tiene un saldo pendiente de " + cuenta.getSaldo()
+                            + ": cobralo en caja antes de cerrar el turno");
         }
 
         existente.setEstado(EstadoServicio.COMPLETADA);
@@ -322,12 +358,13 @@ public class ReservaService {
                     "No se puede eliminar una reserva completada");
         }
 
-        // Primero los hijos (pagos, cuenta, detalle), despues la reserva y la ocupacion.
-        // Hay que cortar la referencia inversa antes de borrar la cuenta: si no,
-        // Hibernate intenta persistir una cuenta ya eliminada al hacer flush.
+        // Primero los hijos (pagos, cuenta, movimientos, detalle), despues la reserva
+        // y la ocupacion. Hay que cortar la referencia inversa antes de borrar la
+        // cuenta: si no, Hibernate intenta persistir una cuenta ya eliminada al hacer flush.
         Cuenta cuenta = existente.getCuenta();
         existente.setCuenta(null);
         existente.getDetalles().clear();
+        movimientoImplementoRepository.deleteByReserva_Id(existente.getId());
         if (cuenta != null) {
             pagoRepository.deleteByCuenta_Id(cuenta.getId());
             cuentaRepository.delete(cuenta);
@@ -340,10 +377,13 @@ public class ReservaService {
         ocupacionRepository.delete(ocupacion);
     }
 
-    /** El check-in y el check-out los registra el personal en la recepcion. */
+    /**
+     * El check-in y el check-out los registra el personal de recepcion. Con cinco
+     * roles ya no alcanza con "no es cliente": utileria y caja tampoco los mueven.
+     */
     private void verificarPersonal() {
-        Usuario actual = currentUser.get();
-        if (Rol.CLIENTE.equals(actual.getRol())) {
+        Rol rol = currentUser.get().getRol();
+        if (rol != Rol.ADMIN && rol != Rol.RECEPCIONISTA) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Solo el personal puede registrar el check-in y el check-out");
         }
@@ -390,6 +430,49 @@ public class ReservaService {
         linea.setTipo(TipoDetalle.CANCHA);
         aplicarDatosCancha(linea, cancha, inicio, fin);
         return linea;
+    }
+
+    /**
+     * Agrega una linea IMPLEMENTO por cada implemento pedido, con precio cero.
+     *
+     * Un mismo implemento repetido en el pedido se acumula en una sola linea.
+     * El catalogo no tiene stock: solo se valida que exista y que este activo.
+     */
+    private void agregarLineasImplemento(Reserva reserva, List<ImplementoLineaRequest> pedidos) {
+        if (pedidos == null || pedidos.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, Integer> cantidades = new LinkedHashMap<>();
+        for (ImplementoLineaRequest pedido : pedidos) {
+            if (pedido == null || pedido.implementoId() == null
+                    || pedido.cantidad() == null || pedido.cantidad() <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Cada implemento necesita un id y una cantidad mayor a cero");
+            }
+            cantidades.merge(pedido.implementoId(), pedido.cantidad(), Integer::sum);
+        }
+
+        for (Map.Entry<Integer, Integer> entrada : cantidades.entrySet()) {
+            Implemento implemento = implementoRepository.findById(entrada.getKey())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "No existe el implemento con id " + entrada.getKey()));
+            if (!implemento.isActivo()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "El implemento " + implemento.getNombre() + " no esta disponible");
+            }
+
+            DetalleReserva linea = new DetalleReserva();
+            linea.setReserva(reserva);
+            linea.setImplemento(implemento);
+            linea.setTipo(TipoDetalle.IMPLEMENTO);
+            linea.setDescripcion(implemento.getNombre());
+            linea.setCantidad(entrada.getValue());
+            linea.setPrecioUnitario(BigDecimal.ZERO);
+            linea.setSubtotal(BigDecimal.ZERO);
+            detalleRepository.save(linea);
+            reserva.getDetalles().add(linea);
+        }
     }
 
     private void actualizarLineaCancha(Reserva reserva, Cancha cancha,

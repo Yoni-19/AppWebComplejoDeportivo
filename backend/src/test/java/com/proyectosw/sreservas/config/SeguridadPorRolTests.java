@@ -313,6 +313,55 @@ class SeguridadPorRolTests {
         }
     }
 
+    /**
+     * Los dos roles nuevos entran al proceso pero no se pisan: utileria registra
+     * prestamos y cargos, caja cobra, y ninguno administra el catalogo.
+     */
+    @Test
+    void utileriaYCajaEntranAlProcesoPeroNoAdministranElCatalogo() throws Exception {
+        String utileria = tokenDe("utileria@email.com", CLAVE_SEED);
+        String caja = tokenDe("caja@email.com", CLAVE_SEED);
+        String cliente = tokenDe("laura@email.com", CLAVE_SEED);
+
+        mockMvc.perform(get("/api/implementos").header("Authorization", "Bearer " + utileria))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/reservas").header("Authorization", "Bearer " + utileria))
+                .andExpect(status().isOk());
+
+        // El catalogo lo administra solo el ADMIN.
+        mockMvc.perform(post("/api/implementos")
+                        .header("Authorization", "Bearer " + utileria)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":\"Silbato\",\"valorReposicion\":5.00,\"activo\":true}"))
+                .andExpect(status().isForbidden());
+
+        // Un 409 (reserva cancelada) prueba que la seguridad dejo pasar el cargo.
+        mockMvc.perform(post("/api/reservas/5/cargos")
+                        .header("Authorization", "Bearer " + utileria)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"tipo":"SERVICIO","descripcion":"Prueba","cantidad":1,"precioUnitario":10.00}
+                                """))
+                .andExpect(status().isConflict());
+
+        // Caja cobra y consulta la cuenta, pero no mueve el turno.
+        mockMvc.perform(get("/api/reservas/1/cuenta").header("Authorization", "Bearer " + caja))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/reservas/1/check-in").header("Authorization", "Bearer " + caja))
+                .andExpect(status().isForbidden());
+
+        // El cliente consulta el catalogo para elegir, pero no carga montos.
+        mockMvc.perform(get("/api/implementos").header("Authorization", "Bearer " + cliente))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/reservas/5/cargos")
+                        .header("Authorization", "Bearer " + cliente)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"tipo":"SERVICIO","descripcion":"Prueba","cantidad":1,"precioUnitario":10.00}
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
     /** Hace login real y devuelve el JWT; asi se prueba tambien que el rol sale de la base. */
     private String tokenDe(String correo, String clave) throws Exception {
         String respuesta = mockMvc.perform(post("/api/auth/login")

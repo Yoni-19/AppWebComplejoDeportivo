@@ -7,6 +7,7 @@ import com.proyectosw.sreservas.model.enums.TipoDetalle;
 
 /**
  * Linea del detalle de una reserva, al estilo del detalle de un pedido.
+ * {@code implementoId} solo viene en las lineas de implementos, danios o perdidas.
  */
 public record DetalleReservaResponse(
         Integer id,
@@ -14,7 +15,8 @@ public record DetalleReservaResponse(
         String descripcion,
         Integer cantidad,
         BigDecimal precioUnitario,
-        BigDecimal subtotal
+        BigDecimal subtotal,
+        Integer implementoId
 ) {
     public static DetalleReservaResponse toResponse(DetalleReserva detalle) {
         return new DetalleReservaResponse(
@@ -23,7 +25,8 @@ public record DetalleReservaResponse(
                 detalle.getDescripcion(),
                 detalle.getCantidad(),
                 detalle.getPrecioUnitario(),
-                detalle.getSubtotal()
+                detalle.getSubtotal(),
+                detalle.getImplemento() != null ? detalle.getImplemento().getId() : null
         );
     }
 }

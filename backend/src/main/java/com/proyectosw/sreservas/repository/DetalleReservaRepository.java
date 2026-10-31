@@ -14,5 +14,7 @@ public interface DetalleReservaRepository extends JpaRepository<DetalleReserva, 
 
     Optional<DetalleReserva> findFirstByReserva_IdAndTipo(Integer reservaId, TipoDetalle tipo);
 
+    boolean existsByImplemento_Id(Integer implementoId);
+
     void deleteByReserva_Id(Integer reservaId);
 }

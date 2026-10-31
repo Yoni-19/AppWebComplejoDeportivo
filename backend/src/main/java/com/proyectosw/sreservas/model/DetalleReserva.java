@@ -42,6 +42,15 @@ public class DetalleReserva {
     @Column (nullable = false, length = 150)
     private String descripcion;
 
+    /**
+     * Implemento del catalogo al que se refiere la linea, cuando aplica
+     * (IMPLEMENTO, DANIO o PERDIDA). Es opcional: las lineas de cancha o de
+     * servicio no apuntan a ningun implemento.
+     */
+    @ManyToOne (fetch = FetchType.LAZY)
+    @JoinColumn (name = "implemento_id")
+    private Implemento implemento;
+
     @Column (nullable = false)
     private Integer cantidad;
 
@@ -84,6 +93,14 @@ public class DetalleReserva {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public Implemento getImplemento() {
+        return implemento;
+    }
+
+    public void setImplemento(Implemento implemento) {
+        this.implemento = implemento;
     }
 
     public Integer getCantidad() {

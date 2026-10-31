@@ -70,6 +70,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/canchas/**").authenticated()
                 .requestMatchers("/api/canchas/**").hasRole("ADMIN")
+                // El catalogo de implementos lo consulta cualquiera (el cliente elige al reservar).
+                .requestMatchers(HttpMethod.GET, "/api/implementos/**").authenticated()
+                .requestMatchers("/api/implementos/**").hasRole("ADMIN")
+                // Utiles y cargos sobre una reserva: los registra utileria (el admin puede respaldar).
+                .requestMatchers(HttpMethod.POST, "/api/reservas/*/implementos/**", "/api/reservas/*/cargos")
+                        .hasAnyRole("ADMIN", "RECEPCIONISTA", "UTILERIA")
                 // Check-in y check-out son operaciones de recepcion: el cliente no los registra.
                 .requestMatchers(HttpMethod.PUT, "/api/reservas/*/check-in", "/api/reservas/*/check-out")
                         .hasAnyRole("ADMIN", "RECEPCIONISTA")
@@ -77,8 +83,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/reservas/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CLIENTE")
                 // El borrado fisico es mantenimiento: la baja de negocio es PUT /{id}/cancelar.
                 .requestMatchers(HttpMethod.DELETE, "/api/reservas/**").hasRole("ADMIN")
-                .requestMatchers("/api/reservas/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CLIENTE")
-                .requestMatchers("/api/pagos/**").hasAnyRole("ADMIN", "RECEPCIONISTA")
+                // Lectura amplia: utileria necesita ver el turno y caja la reserva y su cuenta.
+                .requestMatchers("/api/reservas/**")
+                        .hasAnyRole("ADMIN", "RECEPCIONISTA", "UTILERIA", "CAJA", "CLIENTE")
+                .requestMatchers("/api/pagos/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CAJA")
                 .anyRequest().authenticated())
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
