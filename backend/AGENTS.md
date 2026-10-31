@@ -74,8 +74,9 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
 
 ## Roles y seguridad
 
-- Enum `Rol` (`model/enums/Rol.java`): `ADMIN`, `RECEPCIONISTA`, `CLIENTE`. La columna
-  `usuario.rol` es `varchar(20) not null default 'CLIENTE'`.
+- Enum `Rol` (`model/enums/Rol.java`): `ADMIN`, `RECEPCIONISTA`, `UTILERIA`, `CAJA`, `CLIENTE`.
+  La columna `usuario.rol` es `varchar(20) not null default 'CLIENTE'`, así que los nombres
+  largos no entran: `ENCARGADO_MANTENIMIENTO` (23) no es una opción válida todavía.
 - El JWT **solo lleva el correo**. `JwtAuthFilter` resuelve el usuario desde la base en cada
   request (`CurrentUserService`), así que los tokens viejos siguen válidos y un cambio de rol
   aplica al instante. No agregar `rol` al token: obligaría a re-loguear a todos.
@@ -104,7 +105,15 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
   de negocio: la baja de un servicio es `PUT /api/reservas/{id}/cancelar`.
 - `PUT /api/reservas/*/check-in` y `PUT /api/reservas/*/check-out` son solo `ADMIN` /
   `RECEPCIONISTA`. La matriz los declara **antes** del matcher genérico de `PUT` (el orden
-  importa) y `ReservaService.verificarPersonal` repite la regla: un `CLIENTE` recibe `403`.
+  importa) y `ReservaService.verificarPersonal` repite la regla: cualquier otro rol recibe
+  `403`. No alcanza con "no es cliente": `UTILERIA` y `CAJA` tampoco mueven el turno.
+- `GET /api/implementos/**` es para cualquier autenticado (el cliente elige al reservar);
+  el ABM (`POST`/`PUT`/`DELETE /api/implementos/**`) es solo `ADMIN`.
+- `POST /api/reservas/*/implementos/**` y `POST /api/reservas/*/cargos` son `ADMIN` /
+  `RECEPCIONISTA` / `UTILERIA`. `UtileriaService.verificarUtileria` repite la regla.
+- `GET /api/reservas/**` acepta los cinco roles: utilería necesita ver el turno y caja la
+  reserva con su saldo. `PUT`/`DELETE` no: esas rutas tienen su propia matriz.
+- `POST /api/pagos` (y el resto de `/api/pagos/**`) acepta `ADMIN` / `RECEPCIONISTA` / `CAJA`.
 - No se reprograma una reserva `EN_CURSO`, `COMPLETADA` o `CANCELADA` (`409`). Solo una
   `CONFIRMADA` se cancela; `EN_CURSO`, `COMPLETADA`, `CANCELADA` y `NO_ASISTIO` dan `409`.
 - Un token malformado o vencido **no corta la cadena**: `JwtAuthFilter` sigue como anónimo y la
@@ -152,9 +161,28 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
   en ese orden. No tiene guard de pagos: es limpieza deliberada, no una baja de servicio.
 - Check-in (`PUT /api/reservas/{id}/check-in`): `CONFIRMADA → EN_CURSO`, solo personal y solo
   desde una hora antes del inicio hasta el fin del turno.
-- Check-out (`PUT /api/reservas/{id}/check-out`): `EN_CURSO → COMPLETADA`, solo personal. El
-  cobro del saldo es un paso aparte (`POST /api/pagos`); la cuenta se cierra sola cuando el
-  saldo llega a `0`.
+- Check-out (`PUT /api/reservas/{id}/check-out`): `EN_CURSO → COMPLETADA`, solo personal.
+  Devuelve `409` si `cuenta.saldo > 0`; un `ADMIN` puede forzarlo con `?forzar=true`. El cobro
+  va **antes** del cierre: caja cobra el saldo con `POST /api/pagos` y la cuenta se cierra sola.
+- Implementos: `Implemento` es un catálogo sin stock (nombre único, `valorReposicion`,
+  `activo`). Al crear la reserva, `ReservaRequest.implementos` genera líneas `IMPLEMENTO` con
+  precio `0`; un implemento inactivo o inexistente → `400`/`404`. El `PUT` los ignora.
+- `MovimientoImplemento` es la constancia del hecho físico (`ENTREGA` / `DEVOLUCION`,
+  `cantidad`, `fecha`, `registradoPor`). No es inventario: registra qué pasó y quién lo hizo.
+- `UtileriaService.entregar`: solo sobre una reserva `EN_CURSO`; no se puede entregar más de lo
+  pedido ni volver a entregar lo ya entregado (`409`). Los implementos que no se entregaron
+  quedan pendientes, no se descuentan de nada.
+- `UtileriaService.devolver`: solo sobre `EN_CURSO`. `devueltas` incluye las dañadas;
+  `danadas` es un subconjunto de `devueltas` (`400` si lo supera). `DEVOLUCION` se registra por
+  `devueltas`; las dañadas generan una línea `DANIO` y el faltante (`pendiente - devueltas`)
+  una línea `PERDIDA`. El precio es el indicado o `Implemento.valorReposicion`; si queda en
+  `0` o menos → `400`.
+- Cada cargo (`DANIO` / `PERDIDA` / `SERVICIO`) recalcula `Reserva.montoTotal` con todas las
+  líneas y llama a `CuentaService.recalcularTotal`, así el saldo que cobra caja ya lo incluye.
+  `POST /api/reservas/{id}/cargos` rechaza `CANCELADA` / `NO_ASISTIO` con `409`.
+- `DELETE /api/reservas/{id}` borra también los `MovimientoImplemento` de la reserva; un
+  `Implemento` con movimientos **o pedido en alguna reserva** no se borra del catálogo (`409`):
+  se desactiva.
 - `NO_ASISTIO` no tiene scheduler: `ReservaService.listarTodos` vence los turnos `CONFIRMADA`
   cuyo horario ya terminó, marca la reserva y deja la ocupación inactiva.
 - `PUT /api/usuarios/{id}` acepta clave opcional (`UsuarioUpdateRequest`): si viene `null`,
@@ -177,10 +205,17 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
   `estado: CANCELADA`. `DELETE /api/reservas/{id}` es solo `ADMIN`; al `RECEPCIONISTA` y al
   `CLIENTE` les devuelve `403`.
 - `PUT /api/reservas/{id}/check-in` y `/check-out` devuelven la reserva con el estado nuevo y son
-  solo para `ADMIN` / `RECEPCIONISTA` (`403` al `CLIENTE`).
+  solo para `ADMIN` / `RECEPCIONISTA` (`403` al resto). `check-out` devuelve `409` si queda
+  saldo; `?forzar=true` solo lo acepta un `ADMIN` (`403` para cualquier otro).
 - `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y pagos; un `CLIENTE` solo
   puede consultar la cuenta de sus propias reservas (`403` igual que con la reserva).
-- `POST /api/pagos` es solo para `ADMIN` / `RECEPCIONISTA`. El cliente paga el anticipo al
-  crear la reserva; el saldo lo cobra el personal.
+- `GET /api/reservas/{id}/implementos` devuelve pedidos, entregados, devueltos y pendientes
+  (el 409 de entrega/devolución indica que se pidió o devolvió más de lo posible).
+- `POST /api/reservas/{id}/implementos/entrega` y `.../devolucion` reciben un array de líneas.
+  La devolución responde con la reserva y su `montoTotal` actualizado.
+- `POST /api/reservas/{id}/cargos` recibe `tipo`, `descripcion`, `cantidad` y `precioUnitario`
+  (`> 0`); devuelve la reserva actualizada.
+- `POST /api/pagos` es solo para `ADMIN` / `RECEPCIONISTA` / `CAJA`. El cliente paga el anticipo
+  al crear la reserva; el saldo lo cobra la caja.
 - Cualquier violación de FK que se escape a la base devuelve `409` (handler de
   `DataIntegrityViolationException`), nunca `500`.

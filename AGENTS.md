@@ -52,8 +52,9 @@ propio sigue existiendo y sigue funcionando.
 
 ## Reglas de negocio (resumen)
 
-- Roles: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`. El JWT solo lleva el correo; el rol se lee de
-  la base en cada request y el frontend lo obtiene de `GET /api/auth/me`.
+- Roles: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`, más los operativos `UTILERIA` y `CAJA`. El JWT
+  solo lleva el correo; el rol se lee de la base en cada request y el frontend lo obtiene de
+  `GET /api/auth/me`.
 - El registro público (`POST /api/usuarios`) crea siempre un `CLIENTE`.
 - El `RECEPCIONISTA` también puede dar de alta y editar `CLIENTE` (registro presencial), incluso
   desde el formulario de reserva. No puede tocar al personal, cambiar roles ni borrar cuentas.
@@ -68,9 +69,22 @@ propio sigue existiendo y sigue funcionando.
   (`CONFIRMADA → EN_CURSO`) y `.../check-out` (`EN_CURSO → COMPLETADA`). Los turnos que vencen
   sin check-in quedan `NO_ASISTIO`.
 - La cancha y el horario viven en `Ocupacion`; `Reserva` solo la referencia.
+- Los implementos son un catálogo (`Implemento`), **sin inventario ni stock**: el complejo
+  administra las unidades por fuera. Al reservar se piden cantidades y quedan como líneas
+  `IMPLEMENTO` con precio `0` (el préstamo es gratis).
+- `UtileriaService` (roles `UTILERIA` / `ADMIN` / `RECEPCIONISTA`) registra la entrega y la
+  devolución como `MovimientoImplemento` (`ENTREGA` / `DEVOLUCION`: quién, cuándo, cuántas).
+  Solo se opera sobre una reserva `EN_CURSO`.
+- Al devolver, las unidades dañadas generan una línea `DANIO` y el faltante una `PERDIDA`.
+  Ambas recalculan `Reserva.montoTotal` y `Cuenta.total`/`saldo`. El precio por defecto es
+  `Implemento.valorReposicion`. También existe el cargo manual `DANIO` / `PERDIDA` / `SERVICIO`
+  con `POST /api/reservas/{id}/cargos`.
+- El orden del turno es: anticipo del 50 % → check-in → uso → devolución + cargos → caja cobra
+  el saldo → check-out. `check-out` devuelve `409` si la cuenta tiene saldo; un `ADMIN` puede
+  forzarlo con `?forzar=true`.
 - Cada reserva nace con una `Cuenta` 1:1 y un `DetalleReserva` tipo pedido; `montoTotal` es la
   suma de las líneas. El anticipo del 50 % se registra al crear la reserva y el saldo se cobra
-  después con `POST /api/pagos` (solo `ADMIN` / `RECEPCIONISTA`).
+  después con `POST /api/pagos` (solo `ADMIN` / `RECEPCIONISTA` / `CAJA`).
 - `Pago` cuelga de la `Cuenta`, no de la reserva. Tipos: `ANTICIPO`, `SALDO`, `REEMBOLSO`.
   Daños y pérdidas son líneas del detalle, no pagos.
 - Solapamiento de ocupaciones → `409`.
@@ -80,8 +94,13 @@ propio sigue existiendo y sigue funcionando.
 - Un token JWT inválido no bloquea las rutas públicas: el filtro sigue como anónimo y la
   autorización de cada ruta decide (privadas → `401`).
 - `POST /api/reservas` exige `metodoPago` (registra el anticipo del 50 %); `PUT /api/reservas/{id}`
-  ignora `usuarioId`, `estado` y `montoTotal`, y también ignora el método de pago.
-- `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y movimientos; un `CLIENTE`
-  solo puede consultar sus propias reservas.
+  ignora `usuarioId`, `estado`, `montoTotal` y `implementos`, y también ignora el método de pago.
+- `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y pagos; un `CLIENTE` solo
+  puede consultar la cuenta de sus propias reservas.
+- `GET /api/reservas/{id}/implementos` devuelve pedidos, entregados, devueltos y pendientes por
+  implemento; un `CLIENTE` solo puede consultar sus propias reservas.
+- Los endpoints de utilería (`/{id}/implementos/**`, `/{id}/cargos`) son `POST` y exigen
+  `ADMIN` / `RECEPCIONISTA` / `UTILERIA`; `GET /api/implementos` es para cualquier autenticado y
+  el ABM del catálogo es solo `ADMIN`.
 
 El detalle completo está en `backend/AGENTS.md`.
