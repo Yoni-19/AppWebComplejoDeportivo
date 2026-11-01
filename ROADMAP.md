@@ -73,7 +73,8 @@ entregó, qué volvió y qué se cobra por lo que no volvió.
   precio `0` (el préstamo es gratis). El `PUT` las ignora.
 - `MovimientoImplemento` registra la constancia del hecho físico: `ENTREGA` / `DEVOLUCION`,
   cantidad, fecha y quién lo registró. No es inventario, es trazabilidad.
-- `GET /api/reservas/{id}/implementos` devuelve pedidos, entregados, devueltos y pendientes.
+- `GET /api/reservas/{id}/implementos` devuelve pedidos, entregados, devueltos, pendientes y
+  el `valorReposicion` con el que se cobraría una unidad dañada o perdida.
 - `POST /api/reservas/{id}/implementos/entrega` y `.../devolucion`: utilería registra el
   movimiento. Al devolver, las unidades dañadas generan un cargo `DANIO` y el faltante un
   cargo `PERDIDA`; ambos recalculan el total de la reserva y el saldo de la cuenta.
@@ -81,6 +82,10 @@ entregó, qué volvió y qué se cobra por lo que no volvió.
 - Solo se opera sobre un turno `EN_CURSO`: antes del check-in no hay nada prestado y después
   del check-out ya se cerró.
 - Frontend: pantalla `/utileria` con selector de turno en curso, entrega, devolución y cargo.
+  La devolución separa **unidades en buen estado** de **unidades dañadas** y muestra un resumen
+  en vivo (vuelven, dañadas, no vuelven, cargos) antes de registrar; el cargo manual
+  (`DANIO` / `PERDIDA` / `SERVICIO`) quedó como acción secundaria en un diálogo que lista los
+  cargos ya aplicados, para no cargar dos veces el mismo daño.
 
 ## P5 — Caja (implementado)
 

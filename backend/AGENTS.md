@@ -209,8 +209,10 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
   saldo; `?forzar=true` solo lo acepta un `ADMIN` (`403` para cualquier otro).
 - `GET /api/reservas/{id}/cuenta` devuelve total, saldo, estado y pagos; un `CLIENTE` solo
   puede consultar la cuenta de sus propias reservas (`403` igual que con la reserva).
-- `GET /api/reservas/{id}/implementos` devuelve pedidos, entregados, devueltos y pendientes
-  (el 409 de entrega/devolución indica que se pidió o devolvió más de lo posible).
+- `GET /api/reservas/{id}/implementos` devuelve pedidos, entregados, devueltos, pendientes y
+  `valorReposicion` (la pantalla de utilería anticipa con él el cargo por daño o pérdida antes
+  de registrar la devolución; es el mismo precio que usaría el backend). El 409 de
+  entrega/devolución indica que se pidió o devolvió más de lo posible.
 - `POST /api/reservas/{id}/implementos/entrega` y `.../devolucion` reciben un array de líneas.
   La devolución responde con la reserva y su `montoTotal` actualizado.
 - `POST /api/reservas/{id}/cargos` recibe `tipo`, `descripcion`, `cantidad` y `precioUnitario`
