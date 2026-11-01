@@ -30,6 +30,7 @@ export class AuthService {
     const rol = this.sesionState()?.rol;
     return rol === 'ADMIN' || rol === 'CAJA';
   });
+  readonly esMantenimiento = computed(() => this.sesionState()?.rol === 'MANTENIMIENTO');
   readonly esCliente = computed(() => this.sesionState()?.rol === 'CLIENTE');
 
   /** POST /api/auth/login: stores the JWT and then loads the session (role included). */

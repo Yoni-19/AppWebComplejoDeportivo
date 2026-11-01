@@ -5,21 +5,23 @@
   />
 
   <div class="stat-grid">
-    <mat-card class="stat-card">
-      <mat-card-content>
-        <mat-icon class="stat-icon">pending_actions</mat-icon>
-        <div class="stat-value">{{ reservasEnCurso() }}</div>
-        <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas en curso' : 'Reservas en curso' }}</div>
-      </mat-card-content>
-    </mat-card>
+    @if (!auth.esMantenimiento()) {
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon">pending_actions</mat-icon>
+          <div class="stat-value">{{ reservasEnCurso() }}</div>
+          <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas en curso' : 'Reservas en curso' }}</div>
+        </mat-card-content>
+      </mat-card>
 
-    <mat-card class="stat-card">
-      <mat-card-content>
-        <mat-icon class="stat-icon">event_available</mat-icon>
-        <div class="stat-value">{{ reservasConfirmadas() }}</div>
-        <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas confirmadas' : 'Reservas confirmadas' }}</div>
-      </mat-card-content>
-    </mat-card>
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon">event_available</mat-icon>
+          <div class="stat-value">{{ reservasConfirmadas() }}</div>
+          <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas confirmadas' : 'Reservas confirmadas' }}</div>
+        </mat-card-content>
+      </mat-card>
+    }
 
     @if (auth.esCliente()) {
       <mat-card class="stat-card">
@@ -62,10 +64,15 @@
         <span>Nueva reserva</span>
       </a>
     } @else {
-      <a mat-flat-button color="primary" routerLink="/reservas">
-        <mat-icon>event</mat-icon>
-        <span>Gestionar reservas</span>
-      </a>
+      @if (!auth.esMantenimiento()) {
+        <a mat-flat-button color="primary" routerLink="/reservas">
+          <mat-icon>event</mat-icon>
+          <span>Gestionar reservas</span>
+        </a>
+      }
+      @if (auth.esMantenimiento()) {
+        <p class="modules-empty">El módulo de mantenimiento de espacios llega en la fase P7.</p>
+      }
       @if (auth.esUtileria() || auth.esStaff()) {
         <a mat-flat-button color="primary" routerLink="/utileria">
           <mat-icon>inventory_2</mat-icon>

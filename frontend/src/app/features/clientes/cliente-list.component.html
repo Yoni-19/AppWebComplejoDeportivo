@@ -19,7 +19,7 @@
     @if (puedeCrear()) {
       <a mat-flat-button color="primary" routerLink="/clientes/nueva">
         <mat-icon>add</mat-icon>
-        <span>Nuevo cliente</span>
+        <span>{{ puedeGestionar() ? 'Nuevo usuario' : 'Nuevo cliente' }}</span>
       </a>
     }
   </app-page-header>
@@ -29,7 +29,9 @@
       <mat-spinner diameter="32" strokeWidth="3" />
     </div>
   } @else if (clientes().length === 0) {
-    <p class="cliente-vacio">No hay clientes registrados.</p>
+    <p class="cliente-vacio">
+      {{ puedeGestionar() ? 'No hay usuarios registrados.' : 'No hay clientes registrados.' }}
+    </p>
   }
 
   <div class="table-wrap">

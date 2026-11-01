@@ -27,7 +27,7 @@ export class ClienteListComponent {
 
   readonly clientes = signal<Cliente[]>([]);
   readonly loading = signal(true);
-  readonly roles: Rol[] = ['ADMIN', 'RECEPCIONISTA', 'CLIENTE'];
+  readonly roles: Rol[] = ['ADMIN', 'RECEPCIONISTA', 'CAJA', 'UTILERIA', 'MANTENIMIENTO', 'CLIENTE'];
   readonly etiquetasRol = ROL_LABEL;
   /** El rol, el borrado y "Mi perfil" son solo para ADMIN. */
   readonly puedeGestionar = this.auth.esAdmin;

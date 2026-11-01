@@ -14,10 +14,12 @@
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <span matListItemTitle>Panel principal</span>
       </a>
-      <a mat-list-item routerLink="/reservas" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
-        <mat-icon matListItemIcon>event</mat-icon>
-        <span matListItemTitle>{{ auth.esCliente() ? 'Mis reservas' : 'Reservas' }}</span>
-      </a>
+      @if (!auth.esMantenimiento()) {
+        <a mat-list-item routerLink="/reservas" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>event</mat-icon>
+          <span matListItemTitle>{{ auth.esCliente() ? 'Mis reservas' : 'Reservas' }}</span>
+        </a>
+      }
       @if (auth.esAdmin()) {
         <a mat-list-item routerLink="/canchas" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
           <mat-icon matListItemIcon>sports_soccer</mat-icon>

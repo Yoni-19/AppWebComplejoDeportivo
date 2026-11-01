@@ -45,11 +45,14 @@ export class DashboardComponent {
 
   private cargar(): void {
     // El backend ya filtra: un CLIENTE recibe solo sus propias reservas.
-    this.reservasService.list().subscribe((reservas) => {
-      this.totalReservas.set(reservas.length);
-      this.reservasEnCurso.set(reservas.filter((r) => r.estado === 'EN_CURSO').length);
-      this.reservasConfirmadas.set(reservas.filter((r) => r.estado === 'CONFIRMADA').length);
-    });
+    // Mantenimiento no opera reservas: ni siquiera consulta el listado (403).
+    if (!this.auth.esMantenimiento()) {
+      this.reservasService.list().subscribe((reservas) => {
+        this.totalReservas.set(reservas.length);
+        this.reservasEnCurso.set(reservas.filter((r) => r.estado === 'EN_CURSO').length);
+        this.reservasConfirmadas.set(reservas.filter((r) => r.estado === 'CONFIRMADA').length);
+      });
+    }
 
     // Global counters only make sense (and are only allowed) for staff.
     if (!this.auth.esCliente()) {

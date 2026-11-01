@@ -24,8 +24,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
-      { path: 'reservas', component: ReservaListComponent },
-      { path: 'reservas/nueva', component: ReservaFormComponent },
+      {
+        path: 'reservas',
+        component: ReservaListComponent,
+        canActivate: [roleGuard('ADMIN', 'RECEPCIONISTA', 'UTILERIA', 'CAJA', 'CLIENTE')],
+      },
+      {
+        path: 'reservas/nueva',
+        component: ReservaFormComponent,
+        canActivate: [roleGuard('ADMIN', 'RECEPCIONISTA', 'UTILERIA', 'CAJA', 'CLIENTE')],
+      },
       {
         path: 'reservas/:id/editar',
         component: ReservaFormComponent,
