@@ -120,14 +120,15 @@ entrenamiento con pagos por persona.
 ## P7 — Mantenimiento de canchas (pendiente)
 
 Bloqueos de disponibilidad por mantenimiento, sin reserva asociada, y aviso al personal
-cuando un bloqueo pisa turnos ya vendidos. El rol previsto es `ENCARGADO_MANTENIMIENTO`, que
-**no** entra en `usuario.rol` (`varchar(20)`); si se agrega, usar un nombre más corto o ampliar
-la columna.
+cuando un bloqueo pisa turnos ya vendidos. El rol ya existe como `MANTENIMIENTO` (13 caracteres,
+entra en `usuario.rol`) y el `ADMIN` puede asignarlo desde la pantalla de usuarios; falta el
+módulo. `ENCARGADO_MANTENIMIENTO` (23) no entra en `varchar(20)`: si se prefiere ese nombre,
+ampliar la columna.
 
 ## P8 — Diagramas y cierre de roles (pendiente)
 
-Diagramas de clases y de casos de uso del sistema, con los cinco procesos y los cinco roles
-(`ADMIN`, `RECEPCIONISTA`, `UTILERIA`, `CAJA`, `CLIENTE`).
+Diagramas de clases y de casos de uso del sistema, con los cinco procesos y los seis roles
+(`ADMIN`, `RECEPCIONISTA`, `UTILERIA`, `CAJA`, `MANTENIMIENTO`, `CLIENTE`).
 
 ## Trabajo fuera de plan
 

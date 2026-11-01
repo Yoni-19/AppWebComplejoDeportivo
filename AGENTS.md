@@ -52,10 +52,13 @@ propio sigue existiendo y sigue funcionando.
 
 ## Reglas de negocio (resumen)
 
-- Roles: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`, más los operativos `UTILERIA` y `CAJA`. El JWT
+- Roles: `ADMIN` ⊃ `RECEPCIONISTA` ⊃ `CLIENTE`, más los operativos `UTILERIA`, `CAJA` y
+  `MANTENIMIENTO` (este último sin módulo todavía: llega en P7). El JWT
   solo lleva el correo; el rol se lee de la base en cada request y el frontend lo obtiene de
   `GET /api/auth/me`.
-- El registro público (`POST /api/usuarios`) crea siempre un `CLIENTE`.
+- El `ADMIN` asigna todos los roles desde la pantalla de usuarios (selector de la columna Rol).
+  El registro público (`POST /api/usuarios`) crea siempre un `CLIENTE`; el personal se da de
+  alta igual y después se le cambia el rol con `PUT /api/usuarios/{id}/rol`.
 - El `RECEPCIONISTA` también puede dar de alta y editar `CLIENTE` (registro presencial), incluso
   desde el formulario de reserva. No puede tocar al personal, cambiar roles ni borrar cuentas.
   La clave la entrega en mano el personal: no hay cambio forzado (riesgo aceptado).

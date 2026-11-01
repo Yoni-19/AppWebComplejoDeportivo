@@ -74,9 +74,11 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
 
 ## Roles y seguridad
 
-- Enum `Rol` (`model/enums/Rol.java`): `ADMIN`, `RECEPCIONISTA`, `UTILERIA`, `CAJA`, `CLIENTE`.
-  La columna `usuario.rol` es `varchar(20) not null default 'CLIENTE'`, así que los nombres
-  largos no entran: `ENCARGADO_MANTENIMIENTO` (23) no es una opción válida todavía.
+- Enum `Rol` (`model/enums/Rol.java`): `ADMIN`, `RECEPCIONISTA`, `UTILERIA`, `CAJA`,
+  `MANTENIMIENTO`, `CLIENTE`. La columna `usuario.rol` es `varchar(20) not null default
+  'CLIENTE'`, así que los nombres largos no entran: por eso el rol es `MANTENIMIENTO` (13) y no
+  `ENCARGADO_MANTENIMIENTO` (23). `MANTENIMIENTO` todavía no tiene módulo (P7): solo entra al
+  sistema y consulta canchas; reservas y pagos le devuelven `403`.
 - El JWT **solo lleva el correo**. `JwtAuthFilter` resuelve el usuario desde la base en cada
   request (`CurrentUserService`), así que los tokens viejos siguen válidos y un cambio de rol
   aplica al instante. No agregar `rol` al token: obligaría a re-loguear a todos.
