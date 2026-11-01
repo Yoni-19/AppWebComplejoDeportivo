@@ -7,7 +7,8 @@ INSERT IGNORE INTO usuario (id, nombres, apellidos, correo, clave, rol) VALUES
   (2, 'Laura', 'Gomez', 'laura@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE'),
   (3, 'Pedro', 'Diaz', 'pedro@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE'),
   (101, 'Rocio', 'Utileria', 'utileria@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'UTILERIA'),
-  (102, 'Martin', 'Caja', 'caja@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CAJA');
+  (102, 'Martin', 'Caja', 'caja@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CAJA'),
+  (103, 'Sergio', 'Mantenimiento', 'mantenimiento@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'MANTENIMIENTO');
 
 -- Catalogo de implementos: no hay stock en el sistema, solo que se presta y cuanto
 -- cuesta reponerlo si se pierde o se dania.

@@ -408,6 +408,57 @@ class SeguridadPorRolTests {
         }
     }
 
+    /** El ADMIN asigna todos los roles operativos desde la pantalla de usuarios. */
+    @Test
+    void elAdminAsignaLosRolesOperativos() throws Exception {
+        String admin = tokenDe("admin@email.com", CLAVE_SEED);
+        String correo = "prueba.roles." + UUID.randomUUID() + "@test.local";
+
+        String alta = mockMvc.perform(post("/api/usuarios")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombres":"Prueba","apellidos":"Roles","correo":"%s","clave":"test123"}
+                                """.formatted(correo)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = mapper.readTree(alta).get("id").asInt();
+
+        try {
+            for (String rol : new String[]{"CAJA", "UTILERIA", "MANTENIMIENTO", "RECEPCIONISTA", "CLIENTE"}) {
+                mockMvc.perform(put("/api/usuarios/" + id + "/rol")
+                                .header("Authorization", "Bearer " + admin)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"rol\":\"%s\"}".formatted(rol)))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.rol").value(rol));
+            }
+        } finally {
+            mockMvc.perform(delete("/api/usuarios/" + id).header("Authorization", "Bearer " + admin));
+        }
+    }
+
+    /**
+     * El encargado de mantenimiento existe para P7: entra al sistema y consulta
+     * canchas, pero no opera reservas ni cobra.
+     */
+    @Test
+    void elMantenimientoEntraPeroNoOperaReservas() throws Exception {
+        String mantenimiento = tokenDe("mantenimiento@email.com", CLAVE_SEED);
+
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + mantenimiento))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rol").value("MANTENIMIENTO"));
+        mockMvc.perform(get("/api/canchas").header("Authorization", "Bearer " + mantenimiento))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/reservas").header("Authorization", "Bearer " + mantenimiento))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/pagos")
+                        .header("Authorization", "Bearer " + mantenimiento)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
     /** Hace login real y devuelve el JWT; asi se prueba tambien que el rol sale de la base. */
     private String tokenDe(String correo, String clave) throws Exception {
         String respuesta = mockMvc.perform(post("/api/auth/login")
