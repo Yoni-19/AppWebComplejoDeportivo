@@ -15,7 +15,7 @@ import { PagoService } from '../pagos/pago.service';
 import { ReservaService } from '../reservas/reserva.service';
 
 /**
- * Caja: busca las reservas con saldo abierto y las cobra.
+ * Caja: busca los turnos en curso con saldo abierto y los cobra.
  * El monto siempre lo calcula el backend desde el detalle de la reserva, así los
  * daños y pérdidas cargados por utilería quedan incluidos sin pasos extra.
  */
@@ -48,9 +48,14 @@ export class CajaComponent {
   readonly displayedColumns = ['id', 'cliente', 'cancha', 'estado', 'total', 'saldo', 'cobro'];
   private readonly metodos = signal<Record<number, MetodoPago>>({});
 
-  /** Solo las reservas con cuenta abierta y plata todavía pendiente. */
+  /**
+   * Solo los turnos en uso con plata pendiente. Una reserva confirmada todavía
+   * no consumió el servicio y un cargo posterior reabriría la cuenta.
+   */
   readonly pendientes = computed(() =>
-    this.reservas().filter((r) => r.estadoCuenta === 'ABIERTA' && (r.saldo ?? 0) > 0),
+    this.reservas().filter(
+      (r) => r.estado === 'EN_CURSO' && r.estadoCuenta === 'ABIERTA' && (r.saldo ?? 0) > 0,
+    ),
   );
 
   readonly totalPendiente = computed(() =>
