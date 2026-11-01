@@ -1,0 +1,71 @@
+<h2 mat-dialog-title>Cargo adicional</h2>
+
+<mat-dialog-content class="cargo-dialog">
+  <p class="cargo-ayuda">
+    La devolución ya cobra los daños y las pérdidas de los implementos. Usá este cargo solo
+    para un servicio extra o para un daño detectado después del turno.
+  </p>
+
+  @if (cargosAplicados.length > 0) {
+    <section class="cargo-aplicados">
+      <h3>Cargos ya aplicados</h3>
+      <ul>
+        @for (cargo of cargosAplicados; track cargo.id) {
+          <li>
+            <span class="cargo-tipo">{{ cargo.tipo }}</span>
+            <span class="cargo-desc">{{ cargo.descripcion }}</span>
+            <span class="cargo-monto">{{ cargo.subtotal | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</span>
+          </li>
+        }
+      </ul>
+      <p class="cargo-total">
+        Total de cargos:
+        {{ totalAplicado | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}
+      </p>
+    </section>
+  }
+
+  <p class="cargo-aviso">
+    El cargo se suma al total de la reserva y la caja lo cobra junto con el saldo.
+  </p>
+
+  <form [formGroup]="form" class="cargo-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo</mat-label>
+      <mat-select formControlName="tipo">
+        @for (tipo of tiposCargo; track tipo) {
+          <mat-option [value]="tipo">{{ tipo }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <input matInput formControlName="descripcion" placeholder="Pelota rota al final del turno" />
+      @if (form.controls.descripcion.hasError('required')) {
+        <mat-error>La descripción es obligatoria</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Cantidad</mat-label>
+      <input matInput type="number" min="1" formControlName="cantidad" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Precio unitario</mat-label>
+      <input matInput type="number" min="0.01" step="0.01" formControlName="precioUnitario" />
+    </mat-form-field>
+  </form>
+
+  <p class="cargo-preview">
+    Total actual: {{ data.reserva.montoTotal | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}
+    · Nuevo total:
+    <strong>{{ nuevoTotal() | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</strong>
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancelar()">Cancelar</button>
+  <button mat-flat-button color="primary" type="button" (click)="confirmar()">Agregar cargo</button>
+</mat-dialog-actions>

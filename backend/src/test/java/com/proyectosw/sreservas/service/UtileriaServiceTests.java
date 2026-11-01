@@ -77,10 +77,12 @@ class UtileriaServiceTests {
 
         assertThat(estado.lineas()).hasSize(1);
         ImplementoReservaResponse.LineaImplemento linea = estado.lineas().get(0);
+        assertThat(linea.nombre()).isEqualTo("Pelota de futbol");
         assertThat(linea.pedidos()).isEqualTo(2);
         assertThat(linea.entregados()).isEqualTo(2);
         assertThat(linea.devueltos()).isEqualTo(1);
         assertThat(linea.pendientes()).isEqualTo(1);
+        assertThat(linea.valorReposicion()).isEqualByComparingTo("25.00");
     }
 
     @Test

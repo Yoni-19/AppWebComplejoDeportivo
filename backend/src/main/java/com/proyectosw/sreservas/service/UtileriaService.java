@@ -315,12 +315,14 @@ public class UtileriaService {
             int devueltos = movimientos
                     .getOrDefault(TipoMovimientoImplemento.DEVOLUCION, Map.of())
                     .getOrDefault(implementoId, 0);
-            String nombre = implementoRepository.findById(implementoId)
-                    .map(Implemento::getNombre)
-                    .orElse("Implemento " + implementoId);
+            Implemento implemento = implementoRepository.findById(implementoId).orElse(null);
+            String nombre = implemento != null ? implemento.getNombre() : "Implemento " + implementoId;
+            BigDecimal valorReposicion = implemento != null
+                    ? implemento.getValorReposicion()
+                    : BigDecimal.ZERO;
             lineas.add(new ImplementoReservaResponse.LineaImplemento(
                     implementoId, nombre, entrada.getValue(), entregados, devueltos,
-                    entregados - devueltos));
+                    entregados - devueltos, valorReposicion));
         }
         return new ImplementoReservaResponse(reserva.getId(), lineas);
     }

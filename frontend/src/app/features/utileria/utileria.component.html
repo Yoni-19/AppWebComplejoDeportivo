@@ -69,35 +69,41 @@
                   [max]="l.pedidos - l.entregados"
                   [disabled]="l.pedidos - l.entregados === 0"
                   [value]="entregas()[l.implementoId] ?? 0"
-                  (input)="setCantidad('entrega', l.implementoId, $any($event.target).value)"
+                  (input)="setCantidad('entrega', l, $any($event.target).value)"
                   [attr.aria-label]="'Cantidad a entregar de ' + l.nombre"
                 />
               </td>
             </ng-container>
 
             <ng-container matColumnDef="devolucion">
-              <th mat-header-cell *matHeaderCellDef>Devolver / dañadas</th>
-              <td mat-cell *matCellDef="let l">
-                <input
-                  class="cantidad-input"
-                  type="number"
-                  min="0"
-                  [max]="l.pendientes"
-                  [disabled]="l.pendientes === 0"
-                  [value]="devueltas()[l.implementoId] ?? l.pendientes"
-                  (input)="setCantidad('devolucion', l.implementoId, $any($event.target).value)"
-                  [attr.aria-label]="'Cantidad devuelta de ' + l.nombre"
-                />
-                <input
-                  class="cantidad-input"
-                  type="number"
-                  min="0"
-                  [max]="devueltas()[l.implementoId] ?? l.pendientes"
-                  [disabled]="l.pendientes === 0"
-                  [value]="danadas()[l.implementoId] ?? 0"
-                  (input)="setCantidad('danio', l.implementoId, $any($event.target).value)"
-                  [attr.aria-label]="'Cantidad dañada de ' + l.nombre"
-                />
+              <th mat-header-cell *matHeaderCellDef>Devolver</th>
+              <td mat-cell *matCellDef="let l" class="devolucion-celda">
+                <label class="campo-cantidad">
+                  <span>Buenas</span>
+                  <input
+                    class="cantidad-input"
+                    type="number"
+                    min="0"
+                    [max]="l.pendientes"
+                    [disabled]="l.pendientes === 0"
+                    [value]="buenas()[l.implementoId] ?? l.pendientes"
+                    (input)="setCantidad('devolucion', l, $any($event.target).value)"
+                    [attr.aria-label]="'Unidades en buen estado de ' + l.nombre"
+                  />
+                </label>
+                <label class="campo-cantidad">
+                  <span>Dañadas</span>
+                  <input
+                    class="cantidad-input"
+                    type="number"
+                    min="0"
+                    [max]="l.pendientes"
+                    [disabled]="l.pendientes === 0"
+                    [value]="danadas()[l.implementoId] ?? 0"
+                    (input)="setCantidad('danio', l, $any($event.target).value)"
+                    [attr.aria-label]="'Unidades dañadas de ' + l.nombre"
+                  />
+                </label>
               </td>
             </ng-container>
 
@@ -106,10 +112,37 @@
           </table>
         </div>
 
+        <div class="utileria-resumen">
+          <div class="resumen-item">
+            <span>Vuelven</span>
+            <strong>{{ resumen().devueltas }}</strong>
+          </div>
+          <div class="resumen-item">
+            <span>Dañadas</span>
+            <strong>{{ resumen().danadas }}</strong>
+          </div>
+          <div class="resumen-item">
+            <span>No vuelven</span>
+            <strong>{{ resumen().faltantes }}</strong>
+          </div>
+          <div class="resumen-item">
+            <span>Cargos nuevos</span>
+            <strong>{{ resumen().cargos | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</strong>
+          </div>
+          <div class="resumen-item total">
+            <span>Total de la reserva</span>
+            <strong>{{ resumen().total | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}</strong>
+          </div>
+        </div>
+
         <div class="utileria-acciones">
           <button mat-stroked-button type="button" (click)="entregar()" [disabled]="trabajando()">
             <mat-icon>outbox</mat-icon>
             <span>Registrar entrega</span>
+          </button>
+          <button mat-stroked-button type="button" (click)="abrirCargoDialog()" [disabled]="trabajando()">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Cargo adicional</span>
           </button>
           <button mat-flat-button color="primary" type="button" (click)="devolver()" [disabled]="trabajando()">
             <mat-icon>move_to_inbox</mat-icon>
@@ -117,49 +150,31 @@
           </button>
         </div>
         <p class="utileria-nota">
-          Si una unidad no vuelve, bajá la cantidad devuelta: el faltante se cobra como pérdida.
-          Las dañadas se cobran aparte y se descuentan de las devueltas.
+          Buenas + dañadas son las unidades que vuelven. Lo que no vuelve se cobra como pérdida;
+          las dañadas se cobran al valor de reposición. El total de la reserva ya incluye la
+          cancha y los cargos anteriores: acá solo se suman los nuevos.
         </p>
       }
 
-      <mat-card class="form-card cargo-card">
-        <mat-card-content>
-          <h3>Cargo manual</h3>
-          <form [formGroup]="cargoForm" (ngSubmit)="agregarCargo()" class="cargo-form">
-            <mat-form-field appearance="outline">
-              <mat-label>Tipo</mat-label>
-              <mat-select formControlName="tipo">
-                @for (tipo of tiposCargo; track tipo) {
-                  <mat-option [value]="tipo">{{ tipo }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Descripción</mat-label>
-              <input matInput formControlName="descripcion" placeholder="Iluminación extra" />
-              @if (cargoForm.controls.descripcion.hasError('required')) {
-                <mat-error>La descripción es obligatoria</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Cantidad</mat-label>
-              <input matInput type="number" min="1" formControlName="cantidad" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Precio unitario</mat-label>
-              <input matInput type="number" min="0.01" step="0.01" formControlName="precioUnitario" />
-            </mat-form-field>
-
-            <button mat-flat-button color="primary" type="submit" [disabled]="trabajando()">
-              <mat-icon>add</mat-icon>
-              <span>Agregar cargo</span>
-            </button>
-          </form>
-        </mat-card-content>
-      </mat-card>
+      @if (cargosAplicados().length > 0) {
+        <div class="utileria-cargos">
+          <h3>Cargos ya aplicados</h3>
+          <ul>
+            @for (cargo of cargosAplicados(); track cargo.id) {
+              <li>
+                <span class="cargo-tipo">{{ cargo.tipo }}</span>
+                <span class="cargo-desc">{{ cargo.descripcion }}</span>
+                <span class="cargo-monto">
+                  {{ cargo.subtotal | currency: 'ARS' : 'symbol-narrow' : '1.2-2' }}
+                </span>
+              </li>
+            }
+          </ul>
+          <p class="utileria-nota">
+            Si el daño o la pérdida ya está en esta lista, no hace falta cargarlo de nuevo.
+          </p>
+        </div>
+      }
     }
   }
 </section>

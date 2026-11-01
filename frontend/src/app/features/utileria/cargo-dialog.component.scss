@@ -1,0 +1,82 @@
+.cargo-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.cargo-ayuda {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.cargo-aplicados {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  padding: 12px 16px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 90px 1fr auto;
+    gap: 12px;
+    padding: 4px 0;
+    font-size: 0.85rem;
+  }
+}
+
+.cargo-tipo {
+  font-weight: 600;
+}
+
+.cargo-monto {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cargo-total {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  text-align: right;
+  opacity: 0.85;
+}
+
+.cargo-aviso {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.cargo-form {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px 16px;
+
+  mat-form-field:nth-child(3),
+  mat-form-field:nth-child(4) {
+    grid-column: span 1;
+  }
+}
+
+.cargo-preview {
+  margin: 0;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .cargo-form {
+    grid-template-columns: 1fr;
+  }
+}

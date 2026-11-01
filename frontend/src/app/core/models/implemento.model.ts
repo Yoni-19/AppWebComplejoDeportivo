@@ -68,4 +68,6 @@ export interface LineaImplementoReserva {
   entregados: number;
   devueltos: number;
   pendientes: number;
+  /** Precio que usa el backend para cobrar una unidad dañada o perdida. */
+  valorReposicion: number;
 }

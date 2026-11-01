@@ -1,5 +1,6 @@
 package com.proyectosw.sreservas.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -8,6 +9,10 @@ import java.util.List;
  *
  * Todo se calcula cruzando las lineas IMPLEMENTO del detalle con los movimientos
  * ENTREGA/DEVOLUCION. No hay stock: esto es de una reserva puntual.
+ *
+ * {@code valorReposicion} permite a la pantalla anticipar el cargo por danio o
+ * perdida antes de registrar la devolucion; es el mismo precio que usaria el
+ * backend si no se indica uno.
  */
 public record ImplementoReservaResponse(
         Integer reservaId,
@@ -19,7 +24,8 @@ public record ImplementoReservaResponse(
             int pedidos,
             int entregados,
             int devueltos,
-            int pendientes
+            int pendientes,
+            BigDecimal valorReposicion
     ) {
     }
 }
