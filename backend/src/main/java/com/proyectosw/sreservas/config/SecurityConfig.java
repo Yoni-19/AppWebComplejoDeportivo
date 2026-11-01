@@ -86,7 +86,8 @@ public class SecurityConfig {
                 // Lectura amplia: utileria necesita ver el turno y caja la reserva y su cuenta.
                 .requestMatchers("/api/reservas/**")
                         .hasAnyRole("ADMIN", "RECEPCIONISTA", "UTILERIA", "CAJA", "CLIENTE")
-                .requestMatchers("/api/pagos/**").hasAnyRole("ADMIN", "RECEPCIONISTA", "CAJA")
+                // El anticipo presencial lo crea ReservaService: caja es la unica que cobra el saldo.
+                .requestMatchers("/api/pagos/**").hasAnyRole("ADMIN", "CAJA")
                 .anyRequest().authenticated())
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);

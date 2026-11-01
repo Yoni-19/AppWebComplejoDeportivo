@@ -362,6 +362,52 @@ class SeguridadPorRolTests {
                 .andExpect(status().isForbidden());
     }
 
+    /**
+     * El recepcionista registra clientes y mueve el turno, pero no cobra: el saldo
+     * lo cobra caja. El anticipo presencial lo crea ReservaService al reservar.
+     */
+    @Test
+    void elRecepcionistaNoCobraElSaldoPeroCajaSiPasaLaSeguridad() throws Exception {
+        String admin = tokenDe("admin@email.com", CLAVE_SEED);
+        String caja = tokenDe("caja@email.com", CLAVE_SEED);
+        String correo = "prueba.cobro." + UUID.randomUUID() + "@test.local";
+
+        String alta = mockMvc.perform(post("/api/usuarios")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombres":"Prueba","apellidos":"Cobro","correo":"%s","clave":"test123"}
+                                """.formatted(correo)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        int id = mapper.readTree(alta).get("id").asInt();
+
+        try {
+            mockMvc.perform(put("/api/usuarios/" + id + "/rol")
+                            .header("Authorization", "Bearer " + admin)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"rol\":\"RECEPCIONISTA\"}"))
+                    .andExpect(status().isOk());
+
+            String recepcionista = tokenDe(correo, CLAVE_SEED);
+
+            // La seguridad corta antes de validar el cuerpo.
+            mockMvc.perform(post("/api/pagos")
+                            .header("Authorization", "Bearer " + recepcionista)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isForbidden());
+
+            // Caja pasa la seguridad: el 400 es por el cuerpo vacio, no por el rol.
+            mockMvc.perform(post("/api/pagos")
+                            .header("Authorization", "Bearer " + caja)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isBadRequest());
+        } finally {
+            mockMvc.perform(delete("/api/usuarios/" + id).header("Authorization", "Bearer " + admin));
+        }
+    }
+
     /** Hace login real y devuelve el JWT; asi se prueba tambien que el rol sale de la base. */
     private String tokenDe(String correo, String clave) throws Exception {
         String respuesta = mockMvc.perform(post("/api/auth/login")
