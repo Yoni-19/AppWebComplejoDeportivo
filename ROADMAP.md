@@ -94,9 +94,12 @@ pantalla que mostrara "quién debe cuánto" ni que impidiera cerrar un turno con
 
 **Entregado**:
 
-- Pantalla `/caja`: reservas con cuenta `ABIERTA` y saldo pendiente, total por cobrar y cobro
-  del saldo con el método elegido (`POST /api/pagos`, tipo `SALDO`). El monto lo calcula el
-  backend, así los daños y pérdidas ya están incluidos.
+- Pantalla `/caja`: turnos `EN_CURSO` con cuenta `ABIERTA` y saldo pendiente, total por cobrar y
+  cobro del saldo con el método elegido (`POST /api/pagos`, tipo `SALDO`). El monto lo calcula el
+  backend, así los daños y pérdidas ya están incluidos. Una reserva `CONFIRMADA` no aparece:
+  cobrar antes del uso dejaría la cuenta reabierta si después se carga un cargo.
+- El cobro es exclusivo de caja: la lista de reservas ya no cobra y `POST /api/pagos` acepta
+  solo `ADMIN` / `CAJA`. El anticipo presencial lo crea `ReservaService` al reservar.
 - `PUT /api/reservas/{id}/check-out` rechaza el cierre con `409` si la cuenta tiene saldo.
   Un `ADMIN` puede forzarlo con `?forzar=true` (cliente que se retira sin pagar).
 - Roles `CAJA` y `UTILERIA` agregados a la matriz de seguridad.

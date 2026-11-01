@@ -84,7 +84,7 @@ propio sigue existiendo y sigue funcionando.
   forzarlo con `?forzar=true`.
 - Cada reserva nace con una `Cuenta` 1:1 y un `DetalleReserva` tipo pedido; `montoTotal` es la
   suma de las líneas. El anticipo del 50 % se registra al crear la reserva y el saldo se cobra
-  después con `POST /api/pagos` (solo `ADMIN` / `RECEPCIONISTA` / `CAJA`).
+  después con `POST /api/pagos` (solo `ADMIN` / `CAJA`).
 - `Pago` cuelga de la `Cuenta`, no de la reserva. Tipos: `ANTICIPO`, `SALDO`, `REEMBOLSO`.
   Daños y pérdidas son líneas del detalle, no pagos.
 - Solapamiento de ocupaciones → `409`.

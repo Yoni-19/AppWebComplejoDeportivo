@@ -113,7 +113,8 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
   `RECEPCIONISTA` / `UTILERIA`. `UtileriaService.verificarUtileria` repite la regla.
 - `GET /api/reservas/**` acepta los cinco roles: utilería necesita ver el turno y caja la
   reserva con su saldo. `PUT`/`DELETE` no: esas rutas tienen su propia matriz.
-- `POST /api/pagos` (y el resto de `/api/pagos/**`) acepta `ADMIN` / `RECEPCIONISTA` / `CAJA`.
+- `POST /api/pagos` (y el resto de `/api/pagos/**`) acepta `ADMIN` / `CAJA`. El anticipo
+  presencial lo crea `ReservaService` dentro de la reserva, no este endpoint.
 - No se reprograma una reserva `EN_CURSO`, `COMPLETADA` o `CANCELADA` (`409`). Solo una
   `CONFIRMADA` se cancela; `EN_CURSO`, `COMPLETADA`, `CANCELADA` y `NO_ASISTIO` dan `409`.
 - Un token malformado o vencido **no corta la cadena**: `JwtAuthFilter` sigue como anónimo y la
@@ -217,7 +218,7 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
   La devolución responde con la reserva y su `montoTotal` actualizado.
 - `POST /api/reservas/{id}/cargos` recibe `tipo`, `descripcion`, `cantidad` y `precioUnitario`
   (`> 0`); devuelve la reserva actualizada.
-- `POST /api/pagos` es solo para `ADMIN` / `RECEPCIONISTA` / `CAJA`. El cliente paga el anticipo
+- `POST /api/pagos` es solo para `ADMIN` / `CAJA`. El cliente paga el anticipo
   al crear la reserva; el saldo lo cobra la caja.
 - Cualquier violación de FK que se escape a la base devuelve `409` (handler de
   `DataIntegrityViolationException`), nunca `500`.
