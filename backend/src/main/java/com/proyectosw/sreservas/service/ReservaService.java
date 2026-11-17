@@ -74,7 +74,8 @@ public class ReservaService {
     }
 
     /**
-     * ADMIN y RECEPCIONISTA ven todas las reservas; CLIENTE solo las propias.
+     * ADMIN y RECEPCIONISTA ven todas las reservas; CLIENTE solo las propias;
+     * UTILERIA solo los turnos EN_CURSO (su cola de trabajo).
      * Antes de listar se vencen los turnos que terminaron sin check-in.
      */
     @Transactional
@@ -84,6 +85,9 @@ public class ReservaService {
         Usuario actual = currentUser.get();
         if (Rol.CLIENTE.equals(actual.getRol())) {
             return repository.findByUsuario_Id(actual.getId());
+        }
+        if (Rol.UTILERIA.equals(actual.getRol())) {
+            return repository.findByEstado(EstadoServicio.EN_CURSO);
         }
         return repository.findAll();
     }

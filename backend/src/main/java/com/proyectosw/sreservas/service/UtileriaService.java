@@ -372,7 +372,7 @@ public class UtileriaService {
     /** El proceso de utileria lo opera utileria; el admin puede respaldarlo. */
     private void verificarUtileria() {
         Rol rol = currentUser.get().getRol();
-        if (rol != Rol.ADMIN && rol != Rol.UTILERIA && rol != Rol.RECEPCIONISTA) {
+        if (rol != Rol.ADMIN && rol != Rol.UTILERIA) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Solo utileria puede registrar la entrega, la devolucion y los cargos");
         }

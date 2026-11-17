@@ -75,7 +75,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/implementos/**").hasRole("ADMIN")
                 // Utiles y cargos sobre una reserva: los registra utileria (el admin puede respaldar).
                 .requestMatchers(HttpMethod.POST, "/api/reservas/*/implementos/**", "/api/reservas/*/cargos")
-                        .hasAnyRole("ADMIN", "RECEPCIONISTA", "UTILERIA")
+                        .hasAnyRole("ADMIN", "UTILERIA")
                 // Check-in y check-out son operaciones de recepcion: el cliente no los registra.
                 .requestMatchers(HttpMethod.PUT, "/api/reservas/*/check-in", "/api/reservas/*/check-out")
                         .hasAnyRole("ADMIN", "RECEPCIONISTA")
