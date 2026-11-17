@@ -77,9 +77,6 @@
             <button mat-icon-button (click)="alternarEstado(i)" [attr.aria-label]="i.activo ? 'Desactivar' : 'Activar'">
               <mat-icon>{{ i.activo ? 'block' : 'check_circle' }}</mat-icon>
             </button>
-            <button mat-icon-button (click)="eliminar(i)" aria-label="Eliminar">
-              <mat-icon>delete</mat-icon>
-            </button>
           </td>
         </ng-container>
 

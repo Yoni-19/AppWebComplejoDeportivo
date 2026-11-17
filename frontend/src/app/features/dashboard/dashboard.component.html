@@ -14,13 +14,15 @@
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card">
-        <mat-card-content>
-          <mat-icon class="stat-icon">event_available</mat-icon>
-          <div class="stat-value">{{ reservasConfirmadas() }}</div>
-          <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas confirmadas' : 'Reservas confirmadas' }}</div>
-        </mat-card-content>
-      </mat-card>
+      @if (!auth.esMantenimiento() && !auth.esUtileria()) {
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <mat-icon class="stat-icon">event_available</mat-icon>
+            <div class="stat-value">{{ reservasConfirmadas() }}</div>
+            <div class="stat-label">{{ auth.esCliente() ? 'Mis reservas confirmadas' : 'Reservas confirmadas' }}</div>
+          </mat-card-content>
+        </mat-card>
+      }
     }
 
     @if (auth.esCliente()) {
@@ -63,17 +65,30 @@
         <mat-icon>add</mat-icon>
         <span>Nueva reserva</span>
       </a>
+      <a mat-flat-button color="primary" routerLink="/entrenamientos">
+        <mat-icon>sports</mat-icon>
+        <span>Entrenamientos</span>
+      </a>
     } @else {
-      @if (!auth.esMantenimiento()) {
+      @if (!auth.esMantenimiento() && !auth.esUtileria()) {
         <a mat-flat-button color="primary" routerLink="/reservas">
           <mat-icon>event</mat-icon>
-          <span>Gestionar reservas</span>
+          <span>{{ auth.esAdmin() ? 'Historial de reservas' : 'Gestionar reservas' }}</span>
         </a>
       }
-      @if (auth.esMantenimiento()) {
-        <p class="modules-empty">El módulo de mantenimiento de espacios llega en la fase P7.</p>
+      @if (auth.esAdmin() || auth.esRecepcionista()) {
+        <a mat-flat-button color="primary" routerLink="/entrenamientos">
+          <mat-icon>sports</mat-icon>
+          <span>Entrenamientos</span>
+        </a>
       }
-      @if (auth.esUtileria() || auth.esStaff()) {
+      @if (auth.esMantenimiento() || auth.esAdmin() || auth.esRecepcionista()) {
+        <a mat-flat-button color="primary" routerLink="/mantenimiento">
+          <mat-icon>construction</mat-icon>
+          <span>Mantenimiento</span>
+        </a>
+      }
+      @if (auth.esUtileria()) {
         <a mat-flat-button color="primary" routerLink="/utileria">
           <mat-icon>inventory_2</mat-icon>
           <span>Utilería</span>
@@ -96,7 +111,11 @@
         </a>
         <a mat-flat-button color="primary" routerLink="/clientes">
           <mat-icon>people</mat-icon>
-          <span>Gestionar clientes</span>
+          <span>Clientes</span>
+        </a>
+        <a mat-flat-button color="primary" routerLink="/personal">
+          <mat-icon>badge</mat-icon>
+          <span>Personal</span>
         </a>
       } @else if (auth.esStaff()) {
         <a mat-flat-button color="primary" routerLink="/clientes">

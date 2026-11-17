@@ -18,18 +18,15 @@ export class AuthService {
   readonly sesion = this.sesionState.asReadonly();
 
   readonly esAdmin = computed(() => this.sesionState()?.rol === 'ADMIN');
+  /** Gestion de cuentas: el admin tambien crea y edita usuarios. */
   readonly esStaff = computed(() => {
     const rol = this.sesionState()?.rol;
     return rol === 'ADMIN' || rol === 'RECEPCIONISTA';
   });
-  readonly esUtileria = computed(() => {
-    const rol = this.sesionState()?.rol;
-    return rol === 'ADMIN' || rol === 'UTILERIA';
-  });
-  readonly esCaja = computed(() => {
-    const rol = this.sesionState()?.rol;
-    return rol === 'ADMIN' || rol === 'CAJA';
-  });
+  readonly esRecepcionista = computed(() => this.sesionState()?.rol === 'RECEPCIONISTA');
+  /** Roles operativos exactos: el admin gobierna, no opera el turno. */
+  readonly esUtileria = computed(() => this.sesionState()?.rol === 'UTILERIA');
+  readonly esCaja = computed(() => this.sesionState()?.rol === 'CAJA');
   readonly esMantenimiento = computed(() => this.sesionState()?.rol === 'MANTENIMIENTO');
   readonly esCliente = computed(() => this.sesionState()?.rol === 'CLIENTE');
 

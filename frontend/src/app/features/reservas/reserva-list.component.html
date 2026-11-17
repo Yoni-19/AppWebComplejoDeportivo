@@ -1,9 +1,14 @@
 <section class="page">
-  <app-page-header title="Reservas" subtitle="Listado de reservas del complejo">
-    <a mat-flat-button color="primary" routerLink="/reservas/nueva">
-      <mat-icon>add</mat-icon>
-      <span>Nueva reserva</span>
-    </a>
+  <app-page-header
+    [title]="auth.esAdmin() ? 'Historial de reservas' : 'Reservas'"
+    [subtitle]="auth.esAdmin() ? 'Todas las reservas registradas' : 'Listado de reservas del complejo'"
+  >
+    @if (puedeGestionar()) {
+      <a mat-flat-button color="primary" routerLink="/reservas/nueva">
+        <mat-icon>add</mat-icon>
+        <span>Nueva reserva</span>
+      </a>
+    }
   </app-page-header>
 
   @if (loading()) {
@@ -88,11 +93,6 @@
             @if (puedeCancelar(r)) {
               <button mat-icon-button (click)="cancelar(r)" aria-label="Cancelar reserva">
                 <mat-icon>cancel</mat-icon>
-              </button>
-            }
-            @if (auth.esAdmin()) {
-              <button mat-icon-button (click)="eliminar(r)" aria-label="Eliminar reserva">
-                <mat-icon>delete</mat-icon>
               </button>
             }
           </td>

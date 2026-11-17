@@ -1,0 +1,132 @@
+<section class="page">
+  @if (loading()) {
+    <div class="estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (error()) {
+    <mat-card class="mensaje-card">
+      <mat-card-content>
+        <div class="mensaje-error" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ error() }}</span>
+        </div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button type="button" (click)="volver()">Volver a entrenamientos</button>
+      </mat-card-actions>
+    </mat-card>
+  } @else if (entrenamiento(); as e) {
+    <app-page-header [title]="e.titulo" subtitle="Clase con entrenador en una cancha del complejo">
+      <a mat-button routerLink="/entrenamientos">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Volver</span>
+      </a>
+      @if (puedeGestionar()) {
+        <button mat-stroked-button type="button" (click)="verInscriptos()">
+          <mat-icon>groups</mat-icon>
+          <span>Inscriptos</span>
+        </button>
+      }
+      @if (puedeEditar(e)) {
+        <a mat-flat-button color="primary" [routerLink]="['/entrenamientos', e.id, 'editar']">
+          <mat-icon>edit</mat-icon>
+          <span>Editar</span>
+        </a>
+      }
+    </app-page-header>
+
+    <mat-card class="detalle-card">
+      <mat-card-content>
+        <div class="chips">
+          <span class="estado-chip" [class]="'estado-' + e.estado.toLowerCase()">
+            {{ etiquetaEstado[e.estado] }}
+          </span>
+          @if (e.inscripto) {
+            <span class="inscripto-chip">Inscripto</span>
+          }
+        </div>
+
+        <div class="detalle-grid">
+          <div class="detalle-item">
+            <span class="etiqueta">Entrenador</span>
+            <span class="valor">{{ e.entrenador }}</span>
+          </div>
+
+          <div class="detalle-item">
+            <span class="etiqueta">Cancha</span>
+            <span class="valor">{{ e.canchaNombre }}</span>
+          </div>
+
+          <div class="detalle-item">
+            <span class="etiqueta">Inicio</span>
+            <span class="valor">{{ e.fechaHoraInicio | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+
+          <div class="detalle-item">
+            <span class="etiqueta">Fin</span>
+            <span class="valor">{{ e.fechaHoraFin | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+
+          <div class="detalle-item">
+            <span class="etiqueta">Duración</span>
+            <span class="valor">{{ duracion(e) }}</span>
+          </div>
+
+          <div class="detalle-item">
+            <span class="etiqueta">Precio informativo</span>
+            <span class="valor">{{ e.precio | number: '1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="cupos">
+          <div class="cupos-header">
+            <span class="etiqueta">Cupos</span>
+            <span class="valor">{{ e.inscriptos }} de {{ e.cupoMaximo }} · {{ e.cupoDisponible }} disponibles</span>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="porcentajeCupo()" />
+        </div>
+
+        @if (e.descripcion) {
+          <div class="descripcion">
+            <h2>Descripción</h2>
+            <p>{{ e.descripcion }}</p>
+          </div>
+        }
+
+        <p class="nota-precio">
+          El precio es informativo: la clase se abona directamente con el entrenador.
+        </p>
+
+        @if (e.estado === 'CANCELADO') {
+          <p class="aviso-cancelado">
+            <mat-icon>info</mat-icon>
+            <span>Este entrenamiento fue cancelado y el horario quedó liberado.</span>
+          </p>
+        }
+      </mat-card-content>
+
+      @if (puedeInscribirse(e) || puedeCancelarInscripcion(e) || puedeEditar(e)) {
+        <mat-card-actions align="end">
+          @if (puedeInscribirse(e)) {
+            <button mat-flat-button color="primary" type="button" (click)="inscribirse()">
+              <mat-icon>how_to_reg</mat-icon>
+              <span>Inscribirme</span>
+            </button>
+          }
+          @if (puedeCancelarInscripcion(e)) {
+            <button mat-stroked-button type="button" (click)="cancelarInscripcion()">
+              <mat-icon>person_remove</mat-icon>
+              <span>Liberar cupo</span>
+            </button>
+          }
+          @if (puedeEditar(e)) {
+            <button mat-stroked-button color="warn" type="button" (click)="cancelar()">
+              <mat-icon>cancel</mat-icon>
+              <span>Cancelar entrenamiento</span>
+            </button>
+          }
+        </mat-card-actions>
+      }
+    </mat-card>
+  }
+</section>

@@ -1,0 +1,66 @@
+.notificacion-estado-carga {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.notificacion-vacio {
+  padding: 32px 0;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.notificacion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 820px;
+}
+
+.notificacion-card {
+  border-left: 4px solid transparent;
+
+  &.no-leida {
+    border-left-color: var(--mat-sys-primary);
+  }
+
+  mat-card-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+.notificacion-icono {
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.notificacion-cuerpo {
+  flex: 1;
+}
+
+.notificacion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mat-sys-primary);
+}
+
+.notificacion-mensaje {
+  margin: 4px 0 6px;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.notificacion-fecha {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}

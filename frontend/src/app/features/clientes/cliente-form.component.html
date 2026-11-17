@@ -1,7 +1,13 @@
 <section class="page">
   <app-page-header
-    [title]="esMiPerfil() ? 'Mi perfil' : (isEdit() ? 'Editar cliente' : 'Nuevo cliente')"
-    [subtitle]="esMiPerfil() ? 'Datos de tu cuenta' : 'Datos del cliente'"
+    [title]="
+      esMiPerfil()
+        ? 'Mi perfil'
+        : esPersonal
+          ? (isEdit() ? 'Editar personal' : 'Nuevo personal')
+          : (isEdit() ? 'Editar cliente' : 'Nuevo cliente')
+    "
+    [subtitle]="esMiPerfil() ? 'Datos de tu cuenta' : esPersonal ? 'Datos del personal' : 'Datos del cliente'"
   >
   </app-page-header>
 
@@ -44,6 +50,21 @@
           }
         </mat-form-field>
 
+        @if (esPersonal && !isEdit()) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Rol</mat-label>
+            <mat-select
+              [value]="rolSeleccionado()"
+              (selectionChange)="rolSeleccionado.set($event.value)"
+            >
+              @for (rol of roles; track rol) {
+                <mat-option [value]="rol">{{ etiquetasRol[rol] }}</mat-option>
+              }
+            </mat-select>
+            <mat-hint>El alta crea la cuenta y le asigna este rol.</mat-hint>
+          </mat-form-field>
+        }
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{ isEdit() ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</mat-label>
           <input matInput type="password" formControlName="clave" autocomplete="new-password" />
@@ -58,7 +79,9 @@
             {{
               isEdit()
                 ? 'Dejar vacío para no cambiarla.'
-                : 'La clave con la que el cliente inicia sesión. Entregala en mano.'
+                : esPersonal
+                  ? 'La clave con la que el personal inicia sesión. Entregala en mano.'
+                  : 'La clave con la que el cliente inicia sesión. Entregala en mano.'
             }}
           </mat-hint>
         </mat-form-field>
@@ -71,14 +94,16 @@
         }
 
         <div class="form-actions">
-          <a mat-button routerLink="/clientes">Cancelar</a>
+          <a mat-button [routerLink]="esPersonal ? '/personal' : '/clientes'">Cancelar</a>
           <button mat-flat-button color="primary" type="submit" [disabled]="loading()">
             @if (loading()) {
               <mat-spinner diameter="20" strokeWidth="3" />
             } @else {
               <ng-container>
                 <mat-icon>save</mat-icon>
-                <span>{{ isEdit() ? 'Guardar cambios' : 'Registrar cliente' }}</span>
+                <span>
+                  {{ isEdit() ? 'Guardar cambios' : esPersonal ? 'Registrar personal' : 'Registrar cliente' }}
+                </span>
               </ng-container>
             }
           </button>

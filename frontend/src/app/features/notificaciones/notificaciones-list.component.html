@@ -1,0 +1,43 @@
+<section class="page">
+  <app-page-header title="Notificaciones" subtitle="Avisos de entrenamientos y mantenimiento">
+    @if (notificaciones().length > 0) {
+      <button mat-flat-button color="primary" (click)="marcarTodas()">
+        <mat-icon>done_all</mat-icon>
+        <span>Marcar todas como leídas</span>
+      </button>
+    }
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="notificacion-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (notificaciones().length === 0) {
+    <p class="notificacion-vacio">No tenés notificaciones.</p>
+  }
+
+  <div class="notificacion-list">
+    @for (notificacion of notificaciones(); track notificacion.id) {
+      <mat-card class="notificacion-card" [class.no-leida]="!notificacion.leida">
+        <mat-card-content>
+          <mat-icon class="notificacion-icono">{{ icono(notificacion.tipo) }}</mat-icon>
+          <div class="notificacion-cuerpo">
+            <div class="notificacion-titulo">
+              {{ notificacion.titulo }}
+              @if (!notificacion.leida) {
+                <span class="punto" aria-label="No leída"></span>
+              }
+            </div>
+            <p class="notificacion-mensaje">{{ notificacion.mensaje }}</p>
+            <span class="notificacion-fecha">{{ notificacion.fechaCreacion | date: 'dd/MM/yy HH:mm' }}</span>
+          </div>
+          @if (!notificacion.leida) {
+            <button mat-icon-button (click)="marcarLeida(notificacion)" aria-label="Marcar como leída">
+              <mat-icon>check</mat-icon>
+            </button>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+</section>

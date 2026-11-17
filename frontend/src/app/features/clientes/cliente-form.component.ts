@@ -12,9 +12,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Observable, switchMap, throwError } from 'rxjs';
 import { apiErrorMessage } from '../../core/http/api-error';
+import { Cliente, Rol, ROL_LABEL } from '../../core/models/cliente.model';
 import { AuthService } from '../../core/services/auth.service';
 import { PageHeader } from '../../shared/ui/page-header.component';
 import { ClienteService } from './cliente.service';
@@ -29,7 +32,7 @@ function claveOpcional(control: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-cliente-form',
   standalone: true,
-  imports: [ReactiveFormsModule, MatCard, MatCardContent, MatInputModule, MatButton, MatIconModule, MatChipsModule, MatProgressSpinnerModule, RouterLink, PageHeader],
+  imports: [ReactiveFormsModule, MatCard, MatCardContent, MatInputModule, MatButton, MatIconModule, MatChipsModule, MatProgressSpinnerModule, MatSelectModule, RouterLink, PageHeader],
   templateUrl: './cliente-form.component.html',
   styleUrl: './cliente-form.component.scss',
 })
@@ -44,6 +47,12 @@ export class ClienteFormComponent {
   readonly isEdit = signal(false);
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  /** La ruta de Personal crea y edita personal; la de Clientes, clientes. */
+  readonly esPersonal = this.route.snapshot.data['vista'] === 'personal';
+  /** En el alta de personal se elige el rol operativo; CLIENTE no se ofrece. */
+  readonly roles: Rol[] = ['RECEPCIONISTA', 'ADMIN', 'CAJA', 'UTILERIA', 'MANTENIMIENTO'];
+  readonly etiquetasRol = ROL_LABEL;
+  readonly rolSeleccionado = signal<Rol>('RECEPCIONISTA');
   /** El admin edita su propia cuenta desde "Mi perfil", no desde la lista de clientes. */
   readonly esMiPerfil = computed(() => {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -103,20 +112,40 @@ export class ClienteFormComponent {
     this.errorMessage.set(null);
 
     const { nombres, apellidos, correo, clave } = this.form.getRawValue();
-    const request$ = this.isEdit()
-      ? this.service.update({ id: this.editingId, nombres, apellidos, correo }, clave)
-      : this.service.create({ nombres, apellidos, correo, clave });
+    let request$: Observable<Cliente>;
+
+    if (this.isEdit()) {
+      request$ = this.service.update({ id: this.editingId, nombres, apellidos, correo }, clave);
+    } else if (this.esPersonal) {
+      // POST /api/usuarios siempre crea CLIENTE: el rol se asigna en un segundo paso.
+      request$ = this.service.create({ nombres, apellidos, correo, clave }).pipe(
+        switchMap((creado) => {
+          if (creado.id == null) {
+            return throwError(() => new Error('El alta no devolvió el id del usuario.'));
+          }
+          return this.service.cambiarRol(creado.id, this.rolSeleccionado());
+        }),
+      );
+    } else {
+      request$ = this.service.create({ nombres, apellidos, correo, clave });
+    }
 
     request$.subscribe({
       next: () => {
         this.loading.set(false);
-        this.snackBar.open(this.esMiPerfil() ? 'Datos guardados.' : 'Cliente guardado.', 'Cerrar', { duration: 3000 });
-        this.router.navigate(['/clientes']);
+        this.snackBar.open(this.mensajeGuardado(), 'Cerrar', { duration: 3000 });
+        this.router.navigate([this.esPersonal ? '/personal' : '/clientes']);
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set(apiErrorMessage(err, 'No se pudo guardar el cliente'));
+        const porDefecto = this.esPersonal ? 'No se pudo guardar el personal' : 'No se pudo guardar el cliente';
+        this.errorMessage.set(apiErrorMessage(err, porDefecto));
       },
     });
+  }
+
+  private mensajeGuardado(): string {
+    if (this.esMiPerfil()) return 'Datos guardados.';
+    return this.esPersonal ? 'Personal guardado.' : 'Cliente guardado.';
   }
 }

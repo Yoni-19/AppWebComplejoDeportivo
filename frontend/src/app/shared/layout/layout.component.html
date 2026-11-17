@@ -5,6 +5,7 @@
     [opened]="isMobile().matches ? drawer() : true"
     (closedStart)="drawer.set(false)"
   >
+    <div class="sidenav-content">
     <div class="sidenav-brand">
       <mat-icon>sports</mat-icon>
       <span>Complejo Deportivo</span>
@@ -14,10 +15,22 @@
         <mat-icon matListItemIcon>dashboard</mat-icon>
         <span matListItemTitle>Panel principal</span>
       </a>
-      @if (!auth.esMantenimiento()) {
+      @if (!auth.esMantenimiento() && !auth.esUtileria()) {
         <a mat-list-item routerLink="/reservas" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
           <mat-icon matListItemIcon>event</mat-icon>
-          <span matListItemTitle>{{ auth.esCliente() ? 'Mis reservas' : 'Reservas' }}</span>
+          <span matListItemTitle>{{ auth.esCliente() ? 'Mis reservas' : auth.esAdmin() ? 'Historial' : 'Reservas' }}</span>
+        </a>
+      }
+      @if (auth.esAdmin() || auth.esRecepcionista() || auth.esCliente()) {
+        <a mat-list-item routerLink="/entrenamientos" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>sports</mat-icon>
+          <span matListItemTitle>Entrenamientos</span>
+        </a>
+      }
+      @if (auth.esAdmin() || auth.esRecepcionista() || auth.esMantenimiento()) {
+        <a mat-list-item routerLink="/mantenimiento" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>construction</mat-icon>
+          <span matListItemTitle>Mantenimiento</span>
         </a>
       }
       @if (auth.esAdmin()) {
@@ -26,7 +39,7 @@
           <span matListItemTitle>Canchas</span>
         </a>
       }
-      @if (auth.esUtileria() || auth.esStaff()) {
+      @if (auth.esUtileria()) {
         <a mat-list-item routerLink="/utileria" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
           <mat-icon matListItemIcon>inventory_2</mat-icon>
           <span matListItemTitle>Utilería</span>
@@ -44,13 +57,41 @@
           <span matListItemTitle>Implementos</span>
         </a>
       }
-      @if (auth.esStaff()) {
+      @if (auth.esAdmin()) {
+        <a mat-list-item routerLink="/clientes" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>people</mat-icon>
+          <span matListItemTitle>Clientes</span>
+        </a>
+        <a mat-list-item routerLink="/personal" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
+          <mat-icon matListItemIcon>badge</mat-icon>
+          <span matListItemTitle>Personal</span>
+        </a>
+      } @else if (auth.esStaff()) {
         <a mat-list-item routerLink="/clientes" routerLinkActive="active" (click)="isMobile().matches && drawer.set(false)">
           <mat-icon matListItemIcon>people</mat-icon>
           <span matListItemTitle>Clientes</span>
         </a>
       }
     </mat-nav-list>
+
+    @if (auth.esAdmin()) {
+      @if (auth.sesion(); as sesion) {
+        <mat-divider />
+        <mat-nav-list class="sidenav-footer">
+          <a
+            mat-list-item
+            [routerLink]="['/clientes', sesion.id, 'editar']"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="isMobile().matches && drawer.set(false)"
+          >
+            <mat-icon matListItemIcon>account_circle</mat-icon>
+            <span matListItemTitle>Mi perfil</span>
+          </a>
+        </mat-nav-list>
+      }
+    }
+    </div>
   </mat-sidenav>
 
   <mat-sidenav-content>
@@ -61,6 +102,18 @@
         </button>
       }
       <span class="toolbar-spacer"></span>
+      <a
+        mat-icon-button
+        routerLink="/notificaciones"
+        aria-label="Notificaciones"
+        title="Notificaciones"
+        [matBadge]="notificaciones.noLeidas()"
+        [matBadgeHidden]="notificaciones.noLeidas() === 0"
+        matBadgeColor="warn"
+        matBadgeSize="small"
+      >
+        <mat-icon>notifications</mat-icon>
+      </a>
       @if (rolLabel()) {
         <mat-chip class="toolbar-rol">{{ rolLabel() }}</mat-chip>
       }

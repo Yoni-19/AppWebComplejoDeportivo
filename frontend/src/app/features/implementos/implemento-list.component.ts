@@ -3,7 +3,6 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCard, MatCardContent } from '@angular/material/card';
-import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -13,7 +12,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { Implemento } from '../../core/models/implemento.model';
-import { ConfirmDialogComponent } from '../../shared/ui/confirm-dialog.component';
 import { PageHeader } from '../../shared/ui/page-header.component';
 import { ImplementoService } from './implemento.service';
 
@@ -45,7 +43,6 @@ export class ImplementoListComponent {
   private readonly service = inject(ImplementoService);
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
-  private readonly dialog = inject(MatDialog);
 
   readonly implementos = signal<Implemento[]>([]);
   readonly loading = signal(true);
@@ -136,31 +133,6 @@ export class ImplementoListComponent {
         error: (err) => {
           this.snackBar.open(apiErrorMessage(err, 'No se pudo actualizar el implemento'), 'Cerrar', { duration: 4000 });
         },
-      });
-  }
-
-  eliminar(implemento: Implemento): void {
-    if (implemento.id == null) return;
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        data: {
-          titulo: 'Eliminar implemento',
-          mensaje: `¿Eliminar "${implemento.nombre}" del catálogo?`,
-          confirmar: 'Eliminar',
-        },
-      })
-      .afterClosed()
-      .subscribe((confirmado?: boolean) => {
-        if (!confirmado || implemento.id == null) return;
-        this.service.remove(implemento.id).subscribe({
-          next: () => {
-            this.snackBar.open('Implemento eliminado.', 'Cerrar', { duration: 2500 });
-            this.cargar();
-          },
-          error: (err) => {
-            this.snackBar.open(apiErrorMessage(err, 'No se pudo eliminar el implemento'), 'Cerrar', { duration: 4000 });
-          },
-        });
       });
   }
 }

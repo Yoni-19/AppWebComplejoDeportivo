@@ -1,0 +1,91 @@
+<section class="page">
+  <app-page-header
+    title="Entrenamientos"
+    subtitle="Clic en una fila para ver horario, entrenador y cupos"
+  >
+    @if (puedeGestionar()) {
+      <a mat-flat-button color="primary" routerLink="/entrenamientos/nueva">
+        <mat-icon>add</mat-icon>
+        <span>Nuevo entrenamiento</span>
+      </a>
+    }
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="entrenamiento-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (entrenamientos().length === 0) {
+    <p class="entrenamiento-vacio">No hay entrenamientos registrados.</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="entrenamientos()" class="entrenamiento-table">
+      <ng-container matColumnDef="titulo">
+        <th mat-header-cell *matHeaderCellDef>Entrenamiento</th>
+        <td mat-cell *matCellDef="let e">
+          <strong>{{ e.titulo }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="horario">
+        <th mat-header-cell *matHeaderCellDef>Horario</th>
+        <td mat-cell *matCellDef="let e">
+          {{ e.fechaHoraInicio | date: 'dd/MM/yy HH:mm' }} - {{ e.fechaHoraFin | date: 'HH:mm' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let e">
+          <span class="estado-chip" [class]="'estado-' + e.estado.toLowerCase()">{{ e.estado }}</span>
+          @if (e.inscripto) {
+            <span class="inscripto-chip">Inscripto</span>
+          }
+        </td>
+      </ng-container>
+
+      @if (puedeGestionar() || esCliente()) {
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let e" (click)="$event.stopPropagation()">
+            @if (puedeInscribirse(e)) {
+              <button mat-icon-button (click)="inscribirse(e)" aria-label="Inscribirme">
+                <mat-icon>how_to_reg</mat-icon>
+              </button>
+            }
+            @if (puedeCancelarInscripcion(e)) {
+              <button mat-icon-button (click)="cancelarInscripcion(e)" aria-label="Cancelar inscripcion">
+                <mat-icon>person_remove</mat-icon>
+              </button>
+            }
+            @if (puedeGestionar()) {
+              <button mat-icon-button (click)="verInscriptos(e)" aria-label="Ver inscriptos">
+                <mat-icon>groups</mat-icon>
+              </button>
+            }
+            @if (puedeEditar(e)) {
+              <a mat-icon-button [routerLink]="['/entrenamientos', e.id, 'editar']" aria-label="Editar">
+                <mat-icon>edit</mat-icon>
+              </a>
+              <button mat-icon-button (click)="cancelar(e)" aria-label="Cancelar entrenamiento">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+      }
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns()"
+        class="fila-click"
+        title="Ver detalle"
+        tabindex="0"
+        (click)="verDetalle(row)"
+        (keydown.enter)="verDetalle(row)"
+      ></tr>
+    </table>
+  </div>
+</section>

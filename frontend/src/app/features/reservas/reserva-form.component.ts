@@ -171,25 +171,25 @@ export class ReservaFormComponent {
     }
   }
 
-  /** Staff picks the client; a CLIENTE books for itself (no client list to load). */
+  /** Recepcion elige el cliente; un CLIENTE reserva a su nombre sin ver el campo. */
   private configurarPorRol(): void {
     const usuarioId = this.form.controls.usuarioId;
 
-    if (this.auth.esCliente()) {
-      usuarioId.clearValidators();
-    } else {
+    if (this.auth.esRecepcionista()) {
       usuarioId.setValidators(Validators.required);
       this.clienteService.listClientes().subscribe({
         next: (clientes) => this.clientes.set(clientes),
         error: (err) => this.errorMessage.set(apiErrorMessage(err, 'No se pudieron cargar los clientes')),
       });
+    } else {
+      usuarioId.clearValidators();
     }
     usuarioId.updateValueAndValidity({ emitEvent: false });
   }
 
   /** Alta presencial sin perder cancha, fecha ni horario. */
   registrarCliente(): void {
-    if (!this.auth.esStaff() || this.isEdit()) return;
+    if (!this.auth.esRecepcionista() || this.isEdit()) return;
 
     this.dialog
       .open(ClienteRapidoDialogComponent, { width: '520px', maxWidth: '95vw' })

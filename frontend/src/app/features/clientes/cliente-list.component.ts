@@ -6,7 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/http/api-error';
 import { Cliente, Rol, ROL_LABEL } from '../../core/models/cliente.model';
 import { AuthService } from '../../core/services/auth.service';
@@ -23,20 +23,33 @@ import { ClienteService } from './cliente.service';
 export class ClienteListComponent {
   private readonly service = inject(ClienteService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
   readonly auth = inject(AuthService);
 
-  readonly clientes = signal<Cliente[]>([]);
+  /** La barra lateral separa Clientes de Personal; la ruta decide cual se muestra. */
+  readonly vista: 'clientes' | 'personal' =
+    this.route.snapshot.data['vista'] === 'personal' ? 'personal' : 'clientes';
+
+  /** Lista completa que devuelve la API: el admin recibe clientes y personal. */
+  readonly usuarios = signal<Cliente[]>([]);
+  /** Recepcion solo recibe CLIENTE, asi que su vista siempre es la de clientes. */
+  readonly lista = computed(() =>
+    this.usuarios().filter((c) =>
+      this.vista === 'personal' ? (c.rol ?? 'CLIENTE') !== 'CLIENTE' : (c.rol ?? 'CLIENTE') === 'CLIENTE',
+    ),
+  );
   readonly loading = signal(true);
-  readonly roles: Rol[] = ['ADMIN', 'RECEPCIONISTA', 'CAJA', 'UTILERIA', 'MANTENIMIENTO', 'CLIENTE'];
+  /** En Personal no se ofrece CLIENTE: el alta de clientes vive en la otra vista. */
+  readonly roles: Rol[] = ['ADMIN', 'RECEPCIONISTA', 'CAJA', 'UTILERIA', 'MANTENIMIENTO'];
   readonly etiquetasRol = ROL_LABEL;
-  /** El rol, el borrado y "Mi perfil" son solo para ADMIN. */
+  /** El borrado y "Mi perfil" son solo para ADMIN. */
   readonly puedeGestionar = this.auth.esAdmin;
   /** El recepcionista puede crear y corregir clientes. */
   readonly puedeCrear = this.auth.esStaff;
   readonly puedeEditar = this.auth.esStaff;
-  /** El recepcionista solo ve clientes, así que la columna de rol no aporta. */
+  /** El rol solo se edita en Personal; en Clientes la columna no aporta. */
   readonly displayedColumns = computed(() =>
-    this.puedeGestionar()
+    this.vista === 'personal'
       ? ['id', 'nombre', 'correo', 'rol', 'acciones']
       : ['id', 'nombre', 'correo', 'acciones'],
   );
@@ -49,8 +62,8 @@ export class ClienteListComponent {
 
   private cargar(): void {
     this.service.list().subscribe({
-      next: (clientes) => {
-        this.clientes.set(clientes);
+      next: (usuarios) => {
+        this.usuarios.set(usuarios);
         this.loading.set(false);
       },
       error: (err) => {
@@ -66,7 +79,7 @@ export class ClienteListComponent {
     this.cambiando.set(cliente.id);
     this.service.cambiarRol(cliente.id, rol).subscribe({
       next: (actualizado) => {
-        this.clientes.update((list) => list.map((c) => (c.id === actualizado.id ? { ...c, rol: actualizado.rol } : c)));
+        this.usuarios.update((list) => list.map((c) => (c.id === actualizado.id ? { ...c, rol: actualizado.rol } : c)));
         this.cambiando.set(null);
         this.snackBar.open('Rol actualizado.', 'Cerrar', { duration: 2500 });
       },
@@ -83,7 +96,7 @@ export class ClienteListComponent {
     if (cliente.id == null) return;
     this.service.remove(cliente.id).subscribe({
       next: () => {
-        this.clientes.update((list) => list.filter((c) => c.id !== cliente.id));
+        this.usuarios.update((list) => list.filter((c) => c.id !== cliente.id));
         this.snackBar.open('Cliente eliminado.', 'Cerrar', { duration: 2500 });
       },
       error: (err) => {

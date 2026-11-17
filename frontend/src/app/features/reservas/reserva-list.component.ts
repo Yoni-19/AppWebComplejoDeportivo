@@ -33,12 +33,14 @@ export class ReservaListComponent {
   /** El rol decide las columnas y los botones; el backend igual valida la propiedad. */
   readonly rol = computed(() => this.auth.sesion()?.rol);
   readonly esCliente = computed(() => this.rol() === 'CLIENTE');
-  readonly puedeGestionar = computed(() => !!this.rol());
-  readonly displayedColumns = computed(() =>
-    this.esCliente()
-      ? ['id', 'cancha', 'inicio', 'estado', 'monto', 'cuenta', 'acciones']
-      : ['id', 'cancha', 'cliente', 'inicio', 'estado', 'monto', 'cuenta', 'acciones'],
-  );
+  /** Admin ve historial; utileria y caja solo consultan. Nadie mas opera la fila. */
+  readonly puedeGestionar = computed(() => this.auth.esRecepcionista() || this.auth.esCliente());
+  readonly displayedColumns = computed(() => {
+    const columnas = this.esCliente()
+      ? ['id', 'cancha', 'inicio', 'estado', 'monto', 'cuenta']
+      : ['id', 'cancha', 'cliente', 'inicio', 'estado', 'monto', 'cuenta'];
+    return this.puedeGestionar() ? [...columnas, 'acciones'] : columnas;
+  });
 
   constructor() {
     // El rol no viaja en el token: hay que pedirlo para saber que columnas mostrar.
@@ -65,21 +67,26 @@ export class ReservaListComponent {
 
   /** Solo una reserva confirmada se puede dar de baja; el backend igual lo valida. */
   puedeCancelar(reserva: Reserva): boolean {
-    return reserva.estado === 'CONFIRMADA';
+    return this.puedeGestionar() && reserva.estado === 'CONFIRMADA';
   }
 
-  /** El check-in y el check-out los registra el personal, nunca el cliente. */
+  /** El check-in y el check-out los registra recepcion, nunca el cliente ni el admin. */
   puedeCheckIn(reserva: Reserva): boolean {
-    return this.auth.esStaff() && reserva.estado === 'CONFIRMADA';
+    return this.auth.esRecepcionista() && reserva.estado === 'CONFIRMADA';
   }
 
   puedeCheckOut(reserva: Reserva): boolean {
-    return this.auth.esStaff() && reserva.estado === 'EN_CURSO';
+    return this.auth.esRecepcionista() && reserva.estado === 'EN_CURSO';
   }
 
   /** El backend no reprograma reservas canceladas, en curso ni completadas. */
   puedeEditar(reserva: Reserva): boolean {
-    return reserva.estado !== 'CANCELADA' && reserva.estado !== 'COMPLETADA' && reserva.estado !== 'EN_CURSO';
+    return (
+      this.puedeGestionar() &&
+      reserva.estado !== 'CANCELADA' &&
+      reserva.estado !== 'COMPLETADA' &&
+      reserva.estado !== 'EN_CURSO'
+    );
   }
 
   /** La ventana de check-in la valida el backend; aca solo se avisa el error. */
@@ -152,37 +159,6 @@ export class ReservaListComponent {
           },
           error: (err) => {
             this.snackBar.open(apiErrorMessage(err, 'No se pudo cancelar la reserva'), 'Cerrar', { duration: 5000 });
-          },
-        });
-      });
-  }
-
-  /** Borrado fisico, solo ADMIN: se lleva pagos, cuenta y detalle. */
-  eliminar(reserva: Reserva): void {
-    if (reserva.id == null) return;
-    const id = reserva.id;
-    this.dialog
-      .open(ConfirmDialogComponent, {
-        width: '420px',
-        maxWidth: '95vw',
-        data: {
-          titulo: 'Eliminar reserva',
-          mensaje:
-            'Se borran la reserva, su cuenta, sus pagos y su detalle. No se puede deshacer. Para dar de baja un servicio, cancelá la reserva.',
-          confirmar: 'Eliminar',
-          peligro: true,
-        },
-      })
-      .afterClosed()
-      .subscribe((confirmado?: boolean) => {
-        if (!confirmado) return;
-        this.service.remove(id).subscribe({
-          next: () => {
-            this.reservas.update((list) => list.filter((r) => r.id !== id));
-            this.snackBar.open('Reserva eliminada.', 'Cerrar', { duration: 2500 });
-          },
-          error: (err) => {
-            this.snackBar.open(apiErrorMessage(err, 'No se pudo eliminar la reserva'), 'Cerrar', { duration: 5000 });
           },
         });
       });

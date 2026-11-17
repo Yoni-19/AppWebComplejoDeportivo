@@ -44,7 +44,7 @@ export class DashboardComponent {
   }
 
   private cargar(): void {
-    // El backend ya filtra: un CLIENTE recibe solo sus propias reservas.
+    // El backend ya filtra: CLIENTE solo las propias y UTILERIA solo los turnos EN_CURSO.
     // Mantenimiento no opera reservas: ni siquiera consulta el listado (403).
     if (!this.auth.esMantenimiento()) {
       this.reservasService.list().subscribe((reservas) => {

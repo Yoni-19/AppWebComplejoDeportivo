@@ -1,0 +1,80 @@
+<section class="page">
+  <app-page-header
+    title="Mantenimiento"
+    subtitle="Bloqueos de cancha por reparaciones"
+  >
+    @if (puedeOperar()) {
+      <a mat-flat-button color="primary" routerLink="/mantenimiento/nuevo">
+        <mat-icon>add</mat-icon>
+        <span>Nuevo bloqueo</span>
+      </a>
+    }
+  </app-page-header>
+
+  @if (loading()) {
+    <div class="mantenimiento-estado-carga">
+      <mat-spinner diameter="32" strokeWidth="3" />
+    </div>
+  } @else if (mantenimientos().length === 0) {
+    <p class="mantenimiento-vacio">No hay mantenimientos registrados.</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="mantenimientos()" class="mantenimiento-table">
+      <ng-container matColumnDef="cancha">
+        <th mat-header-cell *matHeaderCellDef>Cancha</th>
+        <td mat-cell *matCellDef="let m">{{ m.canchaNombre }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="motivo">
+        <th mat-header-cell *matHeaderCellDef>Motivo</th>
+        <td mat-cell *matCellDef="let m">{{ m.motivo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="inicio">
+        <th mat-header-cell *matHeaderCellDef>Inicio</th>
+        <td mat-cell *matCellDef="let m">
+          {{ m.fechaHoraInicio | date: 'dd/MM/yy HH:mm' }}
+          <span class="fin">{{ m.fechaHoraFin ? (m.fechaHoraFin | date: 'HH:mm') : (m.resuelto ? 'cerrado' : 'abierto') }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="afectadas">
+        <th mat-header-cell *matHeaderCellDef>Reservas afectadas</th>
+        <td mat-cell *matCellDef="let m">{{ m.reservasAfectadas }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="solucion">
+        <th mat-header-cell *matHeaderCellDef>Solución</th>
+        <td mat-cell *matCellDef="let m" class="solucion" [title]="m.solucion ?? ''">
+          {{ m.solucion || 'Sin registrar' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let m">
+          <span class="estado-chip" [class]="m.resuelto ? 'estado-resuelto' : 'estado-abierto'">
+            {{ m.resuelto ? 'RESUELTO' : 'ABIERTO' }}
+          </span>
+        </td>
+      </ng-container>
+
+      @if (puedeOperar()) {
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let m">
+            @if (!m.resuelto) {
+              <button mat-icon-button (click)="resolver(m)" aria-label="Resolver mantenimiento">
+                <mat-icon>check_circle</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+      }
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+    </table>
+  </div>
+</section>

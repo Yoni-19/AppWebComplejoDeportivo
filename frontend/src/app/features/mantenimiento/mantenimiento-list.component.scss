@@ -1,0 +1,51 @@
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+}
+
+.mantenimiento-table {
+  width: 100%;
+}
+
+.mantenimiento-estado-carga {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.mantenimiento-vacio {
+  padding: 32px 0;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.fin {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.solucion {
+  max-width: 320px;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.estado-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.estado-abierto {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.estado-resuelto {
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+}
