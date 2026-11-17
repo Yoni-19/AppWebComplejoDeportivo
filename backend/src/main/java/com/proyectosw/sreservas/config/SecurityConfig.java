@@ -73,6 +73,19 @@ public class SecurityConfig {
                 // El catalogo de implementos lo consulta cualquiera (el cliente elige al reservar).
                 .requestMatchers(HttpMethod.GET, "/api/implementos/**").authenticated()
                 .requestMatchers("/api/implementos/**").hasRole("ADMIN")
+                // Entrenamientos: el listado lo ve cualquiera; gestiona recepcion.
+                .requestMatchers(HttpMethod.GET, "/api/entrenamientos/*/inscripciones")
+                        .hasAnyRole("ADMIN", "RECEPCIONISTA")
+                .requestMatchers(HttpMethod.POST, "/api/entrenamientos/*/inscripciones").hasRole("CLIENTE")
+                .requestMatchers(HttpMethod.DELETE, "/api/entrenamientos/*/inscripciones").hasRole("CLIENTE")
+                .requestMatchers(HttpMethod.GET, "/api/entrenamientos/**").authenticated()
+                .requestMatchers("/api/entrenamientos/**").hasAnyRole("ADMIN", "RECEPCIONISTA")
+                // Mantenimiento: consulta el encargado; abre y resuelve bloqueos.
+                .requestMatchers(HttpMethod.GET, "/api/mantenimientos/**")
+                        .hasAnyRole("ADMIN", "RECEPCIONISTA", "MANTENIMIENTO")
+                .requestMatchers("/api/mantenimientos/**").hasAnyRole("ADMIN", "MANTENIMIENTO")
+                // La bandeja es personal: cada usuario ve solo sus propios avisos.
+                .requestMatchers("/api/notificaciones/**").authenticated()
                 // Utiles y cargos sobre una reserva: los registra utileria (el admin puede respaldar).
                 .requestMatchers(HttpMethod.POST, "/api/reservas/*/implementos/**", "/api/reservas/*/cargos")
                         .hasAnyRole("ADMIN", "UTILERIA")

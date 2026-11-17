@@ -1,11 +1,12 @@
--- El rol viaja en el seed: la cuenta administradora nace como ADMIN y las demas como CLIENTE.
--- INSERT IGNORE no pisa las filas que ya existen, asi que un cambio de rol hecho desde la
--- aplicacion no se revierte al reiniciar. Para una base ya creada hay que correr a mano:
+-- El rol viaja en el seed: la cuenta administradora nace como ADMIN, recepcion y operativos
+-- con su rol, y el resto como CLIENTE. INSERT IGNORE no pisa las filas que ya existen, asi que
+-- un cambio de rol hecho desde la aplicacion no se revierte al reiniciar. Para una base ya
+-- creada hay que correr a mano:
 --   UPDATE usuario SET rol = 'ADMIN' WHERE correo = 'admin@email.com';
 INSERT IGNORE INTO usuario (id, nombres, apellidos, correo, clave, rol) VALUES
   (1, 'Admin', 'Sistema', 'admin@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'ADMIN'),
   (2, 'Laura', 'Gomez', 'laura@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE'),
-  (3, 'Pedro', 'Diaz', 'pedro@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CLIENTE'),
+  (3, 'Pedro', 'Diaz', 'pedro@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'RECEPCIONISTA'),
   (101, 'Rocio', 'Utileria', 'utileria@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'UTILERIA'),
   (102, 'Martin', 'Caja', 'caja@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'CAJA'),
   (103, 'Sergio', 'Mantenimiento', 'mantenimiento@email.com', '$2a$10$QdpRmEnffZjK3RIvTCAKIOA374XrawxGxwPZBN7VsEeGhTc59fDpG', 'MANTENIMIENTO');
@@ -71,3 +72,23 @@ INSERT IGNORE INTO pago (id, monto, tipo, metodo_pago, estado_pago, fecha_pago, 
   (3, 45.00, 'ANTICIPO', 'TARJETA', 'PAGADO', '2026-10-27 12:00:00', 3),
   (4, 90.00, 'ANTICIPO', 'TARJETA', 'PAGADO', '2026-11-04 18:05:00', 4),
   (5, 90.00, 'SALDO', 'EFECTIVO', 'PAGADO', '2026-11-05 20:10:00', 4);
+
+-- P6: entrenamiento de ejemplo. La cancha y el horario viven en la ocupacion.
+INSERT IGNORE INTO ocupacion (id, cancha_id, fecha_hora_inicio, fecha_hora_fin, tipo, activa) VALUES
+  (6, 2, '2026-11-20 17:00:00', '2026-11-20 18:30:00', 'ENTRENAMIENTO', 1),
+  (7, 4, '2026-11-15 08:00:00', NULL, 'MANTENIMIENTO', 1);
+
+INSERT IGNORE INTO entrenamiento (id, ocupacion_id, titulo, entrenador, descripcion, cupo_maximo, precio, estado) VALUES
+  (1, 6, 'Clase de futsal', 'Diego Sosa', 'Tecnica individual y juego en equipo', 10, 30.00, 'PROGRAMADO');
+
+INSERT IGNORE INTO inscripcion_entrenamiento (id, entrenamiento_id, usuario_id, estado, fecha_inscripcion) VALUES
+  (1, 1, 2, 'INSCRITO', '2026-11-10 09:00:00');
+
+-- P7: mantenimiento abierto de ejemplo en la cancha de voley.
+INSERT IGNORE INTO mantenimiento (id, ocupacion_id, motivo, resuelto, fecha_creacion, fecha_resolucion, reservas_afectadas, reportado_por_id) VALUES
+  (1, 7, 'Red de voley rota', 0, '2026-11-15 08:00:00', NULL, 0, 103);
+
+-- La campana arranca con avisos para el admin y la recepcion.
+INSERT IGNORE INTO notificacion (id, destinatario_id, tipo, titulo, mensaje, leida, fecha_creacion, referencia) VALUES
+  (1, 1, 'MANTENIMIENTO_ABIERTO', 'Mantenimiento abierto', 'Se bloqueo Cancha Voley 1 por: Red de voley rota.', 0, '2026-11-15 08:00:00', 'MANTENIMIENTO:1'),
+  (2, 3, 'MANTENIMIENTO_ABIERTO', 'Mantenimiento abierto', 'Se bloqueo Cancha Voley 1 por: Red de voley rota.', 0, '2026-11-15 08:00:00', 'MANTENIMIENTO:1');
