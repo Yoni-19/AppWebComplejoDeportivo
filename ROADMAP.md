@@ -12,8 +12,8 @@ cierra con los tests del backend en verde, el build del frontend OK y la documen
 | 2 | Uso del espacio (check-in / check-out) | Recepción | `/reservas`, `ReservaService` |
 | 3 | Utilería e implementos | Utilería | `/utileria`, `UtileriaService` |
 | 4 | Cobro en caja | Caja | `/caja`, `PagoService` |
-| 5 | Entrenamiento deportivo | A definir | pendiente |
-| 6 | Mantenimiento de espacios | A definir | pendiente |
+| 5 | Entrenamiento deportivo | Cliente / recepción | `/entrenamientos`, `EntrenamientoService` |
+| 6 | Mantenimiento de espacios | Mantenimiento | `/mantenimiento`, `MantenimientoService` |
 
 El orden real del turno: **reserva con anticipo del 50 % → check-in → uso → devolución de
 implementos con sus cargos → cobro del saldo en caja → check-out (`COMPLETADA`)**.
@@ -27,8 +27,8 @@ implementos con sus cargos → cobro del saldo en caja → check-out (`COMPLETAD
 | P3 | Check-in / check-out / `NO_ASISTIO` | Cerrado |
 | P4 | Utilería e implementos | Implementado (falta prueba manual) |
 | P5 | Caja | Implementado (falta prueba manual) |
-| P6 | Entrenamientos y patrón Observer | Pendiente |
-| P7 | Mantenimiento de canchas | Pendiente |
+| P6 | Entrenamientos y patrón Observer | Implementado (falta prueba manual) |
+| P7 | Mantenimiento de canchas | Implementado (falta prueba manual) |
 | P8 | Diagramas y cierre de roles | Pendiente |
 
 ## P1 — Calendario único de canchas (cerrado)
@@ -54,7 +54,7 @@ después con `POST /api/pagos`. `Pago` cuelga de la cuenta, no de la reserva, y 
 - `NO_ASISTIO`: los turnos confirmados cuyo horario ya terminó se vencen al listar reservas
   (`ReservaService.listarTodos`), sin scheduler.
 - No se reprograma una reserva `EN_CURSO` (`409`).
-- Frontend: botones de check-in y check-out en la lista, visibles solo para el personal.
+- Frontend: botones de check-in y check-out en la lista, visibles solo para recepción.
 
 ## P4 — Utilería e implementos (implementado)
 
@@ -67,8 +67,9 @@ entregó, qué volvió y qué se cobra por lo que no volvió.
 
 **Entregado**:
 
-- Catálogo `Implemento` (`nombre`, `valorReposicion`, `activo`) con ABM en `/implementos`
-  (`ADMIN`); todos los roles autenticados pueden consultarlo para elegir al reservar.
+- Catálogo `Implemento` (`nombre`, `valorReposicion`, `activo`) con alta, edición y
+  activación/desactivación en `/implementos` (`ADMIN`); todos los roles autenticados pueden
+  consultarlo para elegir al reservar. La UI no borra: desactiva.
 - Al crear la reserva se eligen implementos con cantidad: quedan como líneas `IMPLEMENTO` con
   precio `0` (el préstamo es gratis). El `PUT` las ignora.
 - `MovimientoImplemento` registra la constancia del hecho físico: `ENTREGA` / `DEVOLUCION`,
@@ -101,29 +102,54 @@ pantalla que mostrara "quién debe cuánto" ni que impidiera cerrar un turno con
 - El cobro es exclusivo de caja: la lista de reservas ya no cobra y `POST /api/pagos` acepta
   solo `ADMIN` / `CAJA`. El anticipo presencial lo crea `ReservaService` al reservar.
 - `PUT /api/reservas/{id}/check-out` rechaza el cierre con `409` si la cuenta tiene saldo.
-  Un `ADMIN` puede forzarlo con `?forzar=true` (cliente que se retira sin pagar).
+  El backend permite forzarlo a un `ADMIN` con `?forzar=true` (cliente que se retira sin pagar);
+  la UI no le expone check-out al admin.
 - Roles `CAJA` y `UTILERIA` agregados a la matriz de seguridad.
 
 **Pendiente para cerrar del todo**: corte de caja diario (total por método y arqueo) y la
-prueba manual del circuito completo con los usuarios del seed (`utileria@email.com`,
-`caja@email.com`, clave `test123`).
+prueba manual del circuito completo con los usuarios del seed (`pedro@email.com` en recepción,
+`utileria@email.com` y `caja@email.com`, clave `test123`).
 
-## P6 — Entrenamientos y patrón Observer (pendiente)
+## P6 — Entrenamientos y patrón Observer (implementado)
 
-Entrenamientos como `Ocupacion` de tipo propio, con inscripción de clientes. El Observer
-notifica a los inscriptos cuando un entrenamiento se cancela o se reprograma.
+**Problema**: las clases con entrenador no tenían lugar en el calendario y no había forma de
+avisar a los alumnos si el turno se cancelaba o se movía.
 
-**Fork abierto**: `Cuenta` hoy es 1:1 con `Reserva`. Un entrenamiento con N inscriptos no entra
-en ese modelo: hay que decidir entre N cuentas (una por inscripto) o una cuenta del
-entrenamiento con pagos por persona.
+**Entregado**:
 
-## P7 — Mantenimiento de canchas (pendiente)
+- `Entrenamiento` se apoya en una `Ocupacion` de tipo `ENTRENAMIENTO`, igual que una reserva:
+  el solapamiento se sigue chequeando en un único lugar. `InscripcionEntrenamiento` relaciona
+  al cliente con el turno y controla el cupo (`INSCRITO` / `CANCELADO`).
+- `POST/PUT /api/entrenamientos` y `PUT /{id}/cancelar` los opera `ADMIN` / `RECEPCIONISTA`;
+  el catálogo `GET` lo ve cualquier autenticado y el `CLIENTE` se inscribe a sí mismo con
+  `POST /{id}/inscripciones` (el backend ignora cualquier usuario del cuerpo).
+- Patrón **Observer**: `EntrenamientoService` notifica a `EntrenamientoObserver` al cancelar o
+  reprogramar. `NotificacionEntrenamientoObserver` escribe una `Notificacion` por inscripto
+  vigente; la campana del layout y la pantalla `/notificaciones` las muestran.
+- **Alcance de cobro**: el `precio` es informativo y no integra `Cuenta` / `Pago`. Evita abrir
+  el fork de N cuentas por entrenamiento; el pago de la clase se resuelve fuera del sistema.
+- UI: `/entrenamientos` con alta/edición y cancelación para recepción; el admin lo ve como
+  catálogo de solo lectura y el cliente se inscribe o libera su cupo. El listado muestra cupos,
+  precio, estado e inscriptos.
 
-Bloqueos de disponibilidad por mantenimiento, sin reserva asociada, y aviso al personal
-cuando un bloqueo pisa turnos ya vendidos. El rol ya existe como `MANTENIMIENTO` (13 caracteres,
-entra en `usuario.rol`) y el `ADMIN` puede asignarlo desde la pantalla de usuarios; falta el
-módulo. `ENCARGADO_MANTENIMIENTO` (23) no entra en `varchar(20)`: si se prefiere ese nombre,
-ampliar la columna.
+## P7 — Mantenimiento de canchas (implementado)
+
+**Problema**: una cancha rota seguía apareciendo disponible y recepción no se enteraba de los
+turnos ya vendidos que caían dentro del bloqueo.
+
+**Entregado**:
+
+- `Mantenimiento` se apoya en una `Ocupacion` de tipo `MANTENIMIENTO` con `fechaHoraFin` nula:
+  un bloqueo abierto se trata como infinito en `OcupacionRepository.existeSolapamiento`, así
+  que ninguna reserva o entrenamiento nuevo entra en esa cancha hasta resolverlo.
+- `POST /api/mantenimientos` abre el bloqueo y calcula las reservas vigentes afectadas;
+  `PUT /{id}/resolver` recibe la solución aplicada, la guarda en el historial y libera la
+  ocupación sin borrarla.
+- Patrón **Observer**: `MantenimientoObserver` avisa a `ADMIN` y `RECEPCIONISTA` al abrir y al
+  resolver (`NotificacionMantenimientoObserver`).
+- UI: `/mantenimiento` para el rol `MANTENIMIENTO` (abrir y resolver), con consulta de solo
+  lectura para admin y recepción. Muestra motivo, inicio, reservas afectadas, solución y estado.
+- `ENCARGADO_MANTENIMIENTO` (23) no entra en `varchar(20)`: se mantiene `MANTENIMIENTO` (13).
 
 ## P8 — Diagramas y cierre de roles (pendiente)
 
@@ -137,3 +163,10 @@ Diagramas de clases y de casos de uso del sistema, con los cinco procesos y los 
   rama real de la máquina de estados; el resto llegó con P3.
 - **Registro y permisos del recepcionista** (`fix(usuarios)`, commit `65147c2`): alta rápida de
   `CLIENTE` desde el formulario de reserva y filtro JWT tolerante a tokens inválidos.
+- **Separación de roles en la UI**: el `ADMIN` dejó de operar (historial de reservas de solo
+  lectura, sin Utilería ni Caja); la barra lateral separa **Clientes** y **Personal**;
+  el alta de personal elige el rol en el formulario y **Mi perfil** quedó al pie de la barra
+  lateral. Se retiró el borrado destructivo de reservas e implementos (quedan Cancelar y
+  Desactivar). El seed fija a Pedro como `RECEPCIONISTA`. La recepción dejó de operar Utilería
+  (UI y backend) y Utilería no ve el módulo general de Reservas: solo su cola de turnos
+  `EN_CURSO`.

@@ -77,8 +77,13 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
 - Enum `Rol` (`model/enums/Rol.java`): `ADMIN`, `RECEPCIONISTA`, `UTILERIA`, `CAJA`,
   `MANTENIMIENTO`, `CLIENTE`. La columna `usuario.rol` es `varchar(20) not null default
   'CLIENTE'`, así que los nombres largos no entran: por eso el rol es `MANTENIMIENTO` (13) y no
-  `ENCARGADO_MANTENIMIENTO` (23). `MANTENIMIENTO` todavía no tiene módulo (P7): solo entra al
-  sistema y consulta canchas; reservas y pagos le devuelven `403`.
+  `ENCARGADO_MANTENIMIENTO` (23). `MANTENIMIENTO` opera los bloqueos de cancha de P7
+  (`/api/mantenimientos`); reservas y pagos le siguen devolviendo `403`.
+- El seed ya trae a `pedro@email.com` como `RECEPCIONISTA` (clave `test123`), además de los
+  operativos `utileria@email.com`, `caja@email.com` y `mantenimiento@email.com`.
+- En la UI el `ADMIN` **gobierna y no opera**: ve Reservas como historial de solo lectura y no
+  entra a Utilería ni a Caja. La matriz de `SecurityConfig` lo sigue permitiendo como respaldo;
+  la restricción es de interfaz, no de backend.
 - El JWT **solo lleva el correo**. `JwtAuthFilter` resuelve el usuario desde la base en cada
   request (`CurrentUserService`), así que los tokens viejos siguen válidos y un cambio de rol
   aplica al instante. No agregar `rol` al token: obligaría a re-loguear a todos.
@@ -104,7 +109,8 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
   llama a `verificarPropiedad`: un `CLIENTE` solo toca sus reservas (si no, `403`).
   Nunca mover esa validación solo a `SecurityConfig`: ahí no se conoce el dueño de la fila.
 - `DELETE /api/reservas/**` es solo `ADMIN`. Es borrado físico de mantenimiento, no una operación
-  de negocio: la baja de un servicio es `PUT /api/reservas/{id}/cancelar`.
+  de negocio: la baja de un servicio es `PUT /api/reservas/{id}/cancelar`. El frontend ya no
+  expone el borrado.
 - `PUT /api/reservas/*/check-in` y `PUT /api/reservas/*/check-out` son solo `ADMIN` /
   `RECEPCIONISTA`. La matriz los declara **antes** del matcher genérico de `PUT` (el orden
   importa) y `ReservaService.verificarPersonal` repite la regla: cualquier otro rol recibe
@@ -112,11 +118,23 @@ los dos procesos se pelean por `target/`. Si `clean` falla por archivos bloquead
 - `GET /api/implementos/**` es para cualquier autenticado (el cliente elige al reservar);
   el ABM (`POST`/`PUT`/`DELETE /api/implementos/**`) es solo `ADMIN`.
 - `POST /api/reservas/*/implementos/**` y `POST /api/reservas/*/cargos` son `ADMIN` /
-  `RECEPCIONISTA` / `UTILERIA`. `UtileriaService.verificarUtileria` repite la regla.
-- `GET /api/reservas/**` acepta los cinco roles: utilería necesita ver el turno y caja la
-  reserva con su saldo. `PUT`/`DELETE` no: esas rutas tienen su propia matriz.
+  `UTILERIA`. `UtileriaService.verificarUtileria` repite la regla: la recepción mueve el turno,
+  no el préstamo.
+- `GET /api/reservas/**` acepta los cinco roles: `UTILERIA` solo recibe turnos `EN_CURSO`
+  (su cola de trabajo) y caja la reserva con su saldo. `PUT`/`DELETE` no: esas rutas tienen su
+  propia matriz.
 - `POST /api/pagos` (y el resto de `/api/pagos/**`) acepta `ADMIN` / `CAJA`. El anticipo
-  presencial lo crea `ReservaService` dentro de la reserva, no este endpoint.
+  presencial lo crea `ReservaService` dentro de la reserva, no este endpoint. En la UI solo
+  caja cobra el saldo.
+- `GET /api/entrenamientos/**` es para cualquier autenticado (catálogo). `POST`/`PUT` y
+  `PUT /{id}/cancelar` son `ADMIN` / `RECEPCIONISTA`; `POST` y `DELETE` de
+  `/{id}/inscripciones` son solo `CLIENTE` (se inscribe a sí mismo) y el `GET` de inscriptos
+  es `ADMIN` / `RECEPCIONISTA`.
+- `GET /api/mantenimientos/**` es `ADMIN` / `RECEPCIONISTA` / `MANTENIMIENTO`; abrir o resolver
+  (`POST`, `PUT /{id}/resolver`) es `ADMIN` / `MANTENIMIENTO`. En la UI solo el rol
+  `MANTENIMIENTO` opera; el admin queda como respaldo del backend.
+- `/api/notificaciones/**` es para cualquier autenticado, pero cada usuario solo ve y marca sus
+  propias notificaciones (`NotificacionService` valida el dueño).
 - No se reprograma una reserva `EN_CURSO`, `COMPLETADA` o `CANCELADA` (`409`). Solo una
   `CONFIRMADA` se cancela; `EN_CURSO`, `COMPLETADA`, `CANCELADA` y `NO_ASISTIO` dan `409`.
 - Un token malformado o vencido **no corta la cadena**: `JwtAuthFilter` sigue como anónimo y la
@@ -191,6 +209,22 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
 - `PUT /api/usuarios/{id}` acepta clave opcional (`UsuarioUpdateRequest`): si viene `null`,
   la clave no cambia. Un `RECEPCIONISTA` solo puede editar `CLIENTE`; al personal → `403`.
 - `POST /api/usuarios` exige clave (`UsuarioRequest`); `PUT` también la acepta y la re-codifica.
+- **Entrenamientos (P6)**: `Entrenamiento` es 1:1 con una `Ocupacion` de tipo `ENTRENAMIENTO`;
+  el solapamiento se valida contra el mismo calendario que las reservas. La cancelación deja
+  la ocupación inactiva y pasa las inscripciones vigentes a `CANCELADO`. `InscripcionEntrenamiento`
+  es única por `(entrenamiento, usuario)`; cancelar el cupo conserva la fila para volver a
+  inscribirse. El cupo se controla con las inscripciones `INSCRITO` y no se puede bajar por
+  debajo de las vigentes (`409`). El `precio` es informativo: no crea `Cuenta` ni `Pago`.
+- **Observer (P6/P7)**: `EntrenamientoService` notifica a `EntrenamientoObserver` al cancelar o
+  reprogramar (solo cuando cambia cancha u horario); `MantenimientoService` notifica a
+  `MantenimientoObserver` al abrir y resolver. Las implementaciones escriben `Notificacion`
+  para los inscriptos vigentes o para `ADMIN` / `RECEPCIONISTA`.
+- **Mantenimiento (P7)**: `Mantenimiento` es 1:1 con una `Ocupacion` de tipo `MANTENIMIENTO`.
+  Un bloqueo abierto tiene `fechaHoraFin` nula y `existeSolapamiento` la trata como infinita,
+  así que no entran reservas ni entrenamientos nuevos. Al abrir se cuentan las reservas
+  vigentes afectadas (se guardan en `reservasAfectadas`) y se avisa a recepción; resolver exige
+  la `solucion` aplicada, deja `Ocupacion.activa = false` y conserva el historial. Una cancha no
+  puede tener dos mantenimientos abiertos (`409`).
 
 ## Contratos que el frontend NO puede cambiar
 
@@ -222,5 +256,17 @@ En una base con datos reales habría que migrar a mano antes de levantar la app.
   (`> 0`); devuelve la reserva actualizada.
 - `POST /api/pagos` es solo para `ADMIN` / `CAJA`. El cliente paga el anticipo
   al crear la reserva; el saldo lo cobra la caja.
+- `GET /api/entrenamientos` devuelve el catálogo con `inscriptos`, `cupoDisponible` e
+  `inscripto` (según el usuario autenticado). `POST /{id}/inscripciones` no recibe cuerpo: el
+  cliente se inscribe a sí mismo. Si no quedan cupos, el turno está cancelado o ya comenzó,
+  devuelve `409`; un rol que no sea `CLIENTE`, `403`.
+- `GET /api/entrenamientos/{id}/inscripciones` es solo para `ADMIN` / `RECEPCIONISTA`.
+- `POST /api/mantenimientos` recibe `canchaId`, `motivo` y una `fechaHoraInicio` opcional
+  (vacía = ahora) y devuelve `reservasAfectadas` calculadas al abrir. `PUT /{id}/resolver` recibe
+  `{ solucion }` obligatoria (máximo 500 caracteres) y la guarda en el historial; un bloqueo ya
+  resuelto devuelve `409`.
+- `GET /api/notificaciones` devuelve la bandeja propia; `GET /no-leidas/count`,
+  `PUT /{id}/leer` y `PUT /leer-todas` operan sobre el usuario autenticado. Marcar una
+  notificación ajena devuelve `403`.
 - Cualquier violación de FK que se escape a la base devuelve `409` (handler de
   `DataIntegrityViolationException`), nunca `500`.
